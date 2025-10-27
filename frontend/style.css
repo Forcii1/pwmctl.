@@ -20,6 +20,7 @@ body {
   min-height: calc(100vh - 40px);
   display: flex;
   flex-direction: column;
+  user-select: none; /* verhindert markieren */
 }
 
 /* ========== Container ========== */
@@ -37,11 +38,14 @@ h1 {
   margin-bottom: 0.5rem;
   color: var(--primary-color);
   text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  pointer-events: none; /* verhindert Klicks und Mausinteraktion */
 }
+
 
 p {
   font-size: 1rem;
   color: #ccc;
+  pointer-events: none; /* verhindert Klicks und Mausinteraktion */
 }
 
 /* ========== Buttons ========== */
@@ -219,10 +223,11 @@ input[type="range"] {
 }
 
 .curve-fans {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px; 
 }
+
 
 .curve-fan-btn,
 .curve-sensor-btn,
@@ -263,7 +268,6 @@ input[type="range"] {
   color: var(--primary-color);
   font-weight: 600;
   width: 100%;
-  margin-top: 10px;
   border-radius: 10px;
   padding: 10px 0;
   font-size: 1rem;
@@ -315,7 +319,7 @@ body::-webkit-scrollbar {
 
 .curve-editor-close {
   position: absolute;
-  top: -13px; right: -13px;
+  top: -20px; right: -15px;
   cursor: pointer;
   padding: 5px 10px;
   font-size: 1rem;
@@ -327,8 +331,10 @@ body::-webkit-scrollbar {
 
 .curve-editor-coord {
   position: absolute;
-  top: 10px;
+  top: 5px;
   left: 10px;
   color: var(--primary-color);
   font-size: 0.85rem;
+  user-select: none; /* verhindert markieren */
+  pointer-events: none; /* verhindert Klicks und Mausinteraktion */
 }

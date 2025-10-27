@@ -150,8 +150,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     createFanButtons("it87", "it86", "Fans");
 });
 
-
-
 // Curves nebeneinander
 curvesContainer.style.display = 'flex';
 curvesContainer.style.flexWrap = 'wrap';
@@ -160,7 +158,6 @@ curvesContainer.style.alignItems = 'flex-start';
 curvesContainer.style.justifyContent = 'flex-start';
 
 // Mini-Graph zeichnen
-// Mini-Graph zeichnen (HiDPI-fähig)
 function drawMiniCurve(canvas, points) {
     const dpr = window.devicePixelRatio || 1;
     const width = canvas.width;
@@ -208,7 +205,6 @@ function drawMiniCurve(canvas, points) {
     });
 }
 
-
 // Großer Editor
 function openCurveEditor(points, miniCanvas, onSave) {
     const overlay = document.createElement('div');
@@ -248,7 +244,15 @@ function openCurveEditor(points, miniCanvas, onSave) {
         ctx.moveTo(50, 20);
         ctx.lineTo(50, canvas.height - 40);
         ctx.stroke();
+        ctx.restore();
 
+        // Rasterlinien X (Temp)
+        ctx.save();
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 0.5;
+        ctx.fillStyle = '#ccc';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
         // Rasterlinien X (Temp) alle 10
         ctx.strokeStyle = '#444';
         ctx.lineWidth = 0.5;
@@ -258,28 +262,26 @@ function openCurveEditor(points, miniCanvas, onSave) {
             ctx.moveTo(x, 20);
             ctx.lineTo(x, canvas.height - 40);
             ctx.stroke();
+            ctx.fillText(t, x-7, canvas.height - 20);
         }
+        ctx.restore();
 
+        // Rasterlinien Y (PWM)
+        ctx.save();
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 0.5;
+        ctx.fillStyle = '#ccc';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'right';
         // Rasterlinien Y (PWM) alle 10
-        for(let p=0;p<=255;p+=25){ // 255/10≈25
+        for(let p=0;p<=255;p+=25){
             const y = canvas.height - 40 - p/255*(canvas.height-60);
             ctx.beginPath();
             ctx.moveTo(50, y);
             ctx.lineTo(canvas.width-20, y);
             ctx.stroke();
+            ctx.fillText(p, 45-10, y + 4); 
         }
-
-        // Achsenbeschriftung
-        ctx.fillStyle = '#ccc';
-        ctx.font = '14px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Temp (0-100°C)', canvas.width / 2, canvas.height - 10);
-        ctx.save();
-        ctx.translate(15, canvas.height / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.fillText('PWM (0-255)', 0, 0);
-        ctx.restore();
-
         if(points.length < 2) return;
 
         // Kurve
@@ -317,7 +319,7 @@ function openCurveEditor(points, miniCanvas, onSave) {
         y = Math.min(Math.max(y, 0), 255);
 
         if(e.button === 0){ // Linksklick
-            selectedPoint = points.find(p => Math.hypot(p.x - x, p.y - y) < 3);
+            selectedPoint = points.find(p => Math.hypot(p.x - x, p.y - y) < 4);
             
             if(!selectedPoint){
                 // Monotone Kurve prüfen
@@ -355,27 +357,26 @@ function openCurveEditor(points, miniCanvas, onSave) {
         let newX = (e.clientX - rect.left - 50) / (canvas.width - 70) * 100;
         let newY = 255 - (e.clientY - rect.top - 20) / (canvas.height - 60) * 255;
 
-        // Ersten Punkt: x fix, y darf bewegt werden
-        if (selectedPoint.x === 0) {
+        const idx = points.indexOf(selectedPoint);
+        if (idx > 0) {
+            const prev = points[idx - 1];
+            newX = Math.max(newX, prev.x);
+            newY = Math.max(newY, prev.y);
+
+        }
+        if (idx < points.length - 1) {
+            const next = points[idx + 1];
+            newX = Math.min(newX, next.x);
+            newY = Math.min(newY, next.y);
+        }
+        if (idx === 0) {//Punkt auf x=0 nicht auf x bewegbar
             newX = 0;
             newY = Math.min(Math.max(newY, 0), 255);
             selectedPoint.y = newY;
-        } else {
-            const idx = points.indexOf(selectedPoint);
-            if (idx > 0) {
-                const prev = points[idx - 1];
-                newX = Math.max(newX, prev.x);
-                newY = Math.max(newY, prev.y);
-            }
-            if (idx < points.length - 1) {
-                const next = points[idx + 1];
-                newX = Math.min(newX, next.x);
-                newY = Math.min(newY, next.y);
-            }
+        }else{
             selectedPoint.x = Math.min(Math.max(newX, 0), 100);
             selectedPoint.y = Math.min(Math.max(newY, 0), 255);
         }
-
         coordDisplay.textContent = `Temp: ${selectedPoint.x.toFixed(0)}°C | PWM: ${selectedPoint.y.toFixed(0)}`;
         
         drawCurve();
@@ -390,9 +391,19 @@ function openCurveEditor(points, miniCanvas, onSave) {
         const x = (e.clientX - rect.left - 50) / (canvas.width - 70) * 100;
         const y = 255 - (e.clientY - rect.top - 20) / (canvas.height - 60) * 255;
 
-        const pointIndex = points.findIndex(p => p.x !== 0 && Math.hypot(p.x - x, p.y - y) < 3);
-        if(pointIndex !== -1){
-            points.splice(pointIndex,1);
+        const HIT_RADIUS = 10;
+
+        // Nächsten Punkt finden
+        const closest = points.reduce((closestSoFar, p, idx) => {
+            const dist = Math.hypot(p.x - x, p.y - y);
+            if (dist < HIT_RADIUS && (!closestSoFar || dist < closestSoFar.dist)) {
+                return { index: idx, dist };
+            }
+            return closestSoFar;
+        }, null);
+
+        if (closest && closest.index !== 0) { // 0 = erster Punkt darf nicht gelöscht werden
+            points.splice(closest.index, 1);
             drawCurve();
             drawMiniCurve(miniCanvas, points);
         }
@@ -400,12 +411,7 @@ function openCurveEditor(points, miniCanvas, onSave) {
 
     canvas.addEventListener('mouseup', () => selectedPoint = null);
 
-    canvas.addEventListener('dblclick', () => {
-        onSave(points);
-        document.body.removeChild(overlay);
-    });
 }
-
 
 addCurveBtn.addEventListener('click', () => {
     const curveContainer = document.createElement('div');
