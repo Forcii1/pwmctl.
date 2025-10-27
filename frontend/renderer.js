@@ -6,138 +6,158 @@ window.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('buttonsContainer');
     if (!container) return console.error("buttonsContainer not found!");
 
-    async function createFanButtons(name1, name2, displayName) {
-        const container = document.getElementById('buttonsContainer');
-        container.innerHTML = '';
+async function createFanButtons(name1, name2, displayName) {
+    const container = document.getElementById('buttonsContainer');
+    container.innerHTML = '';
 
-        const path = window.electronAPI.searchPath(name1, name2);
-        if (path === "NONE") {
-            container.textContent = `Kein HWMon-Gerät für ${displayName} gefunden!`;
-            return;
-        }
-
-        const count = await window.electronAPI.getFanCount(path);
-        const savedNames = JSON.parse(localStorage.getItem('fanNames') || '{}');
-
-        for (let i = 1; i <= count; i++) {
-            const fanContainer = document.createElement('div');
-            fanContainer.classList.add('container');
-
-            // ---- Header ----
-            const header = document.createElement('div');
-            header.classList.add('header');
-            header.style.display = 'flex';
-            header.style.alignItems = 'center';
-            header.style.gap = '10px';
-
-            // editierbarer Name
-            const nameInput = document.createElement('input');
-            nameInput.type = 'text';
-            nameInput.value = savedNames[`fan${i}`] || `Fan ${i}`;
-            nameInput.style.background = 'transparent';
-            nameInput.style.border = 'none';
-            nameInput.style.color = '#fff';
-            nameInput.style.fontWeight = 'bold';
-            nameInput.style.width = '120px';
-            nameInput.style.outline = 'none';
-
-            // Name speichern bei Änderung
-            nameInput.addEventListener('change', () => {
-                savedNames[`fan${i}`] = nameInput.value;
-                localStorage.setItem('fanNames', JSON.stringify(savedNames));
-            });
-
-            // RPM-Anzeige
-            const speedLabel = document.createElement('span');
-            speedLabel.textContent = '--- RPM';
-            speedLabel.style.fontSize = '0.8rem';
-            speedLabel.style.color = '#00bcd4';
-
-            header.appendChild(nameInput);
-            header.appendChild(speedLabel);
-            fanContainer.appendChild(header);
-
-            // ---- Inhalt (PWM-Regler usw.) ----
-            const content = document.createElement('div');
-            content.classList.add('content');
-            content.style.maxHeight = '0';
-            content.style.overflow = 'hidden';
-            content.style.transition = 'max-height 0.3s ease, padding 0.3s ease';
-            content.style.padding = '0 10px';
-
-            const inputContainer = document.createElement('div');
-            inputContainer.style.marginTop = '10px';
-            inputContainer.style.display = 'flex';
-            inputContainer.style.flexDirection = 'column';
-            inputContainer.style.gap = '8px';
-
-            const pwmCheckbox = document.createElement('input');
-            pwmCheckbox.type = 'checkbox';
-            pwmCheckbox.id = `pwmEnable${i}`;
-
-            const pwmLabel = document.createElement('label');
-            pwmLabel.htmlFor = `pwmEnable${i}`;
-            pwmLabel.textContent = 'PWM aktiv';
-
-            const pwmInput = document.createElement('input');
-            pwmInput.type = 'range';
-            pwmInput.min = '0';
-            pwmInput.max = '255';
-            pwmInput.value = '0';
-            pwmInput.style.width = '100%';
-
-            const pwmValueLabel = document.createElement('span');
-            pwmValueLabel.textContent = pwmInput.value;
-            pwmValueLabel.style.fontSize = '0.9rem';
-            pwmValueLabel.style.color = '#f0f0f0';
-            pwmValueLabel.style.textAlign = 'center';
-
-            pwmInput.addEventListener('input', () => {
-                pwmValueLabel.textContent = pwmInput.value;
-            });
-
-            const applyButton = document.createElement('button');
-            applyButton.textContent = '✓';
-            applyButton.style.width = '30px';
-            applyButton.style.height = '30px';
-            applyButton.addEventListener('click', () => {
-                console.log(`${nameInput.value} - PWM aktiv: ${pwmCheckbox.checked}, Wert: ${pwmInput.value}`);
-            });
-
-            [pwmCheckbox, pwmLabel, pwmInput, pwmValueLabel, applyButton].forEach(el => inputContainer.appendChild(el));
-            content.appendChild(inputContainer);
-            fanContainer.appendChild(content);
-            container.appendChild(fanContainer);
-
-            // ---- Aufklappen ----
-            header.addEventListener('click', () => {
-                content.style.maxHeight = content.style.maxHeight === '0px' || !content.style.maxHeight
-                    ? content.scrollHeight + "px"
-                    : "0";
-            });
-
-            // ---- Drehzahl-Aktualisierung ----
-            const fanFile = `${path}/fan${i}_input`;
-            async function updateRPM() {
-                try {
-                    const rpm = await window.electronAPI.getFanSpeed(fanFile);
-                    speedLabel.textContent = `${rpm} RPM`;
-                } catch {
-                    speedLabel.textContent = '--- RPM';
-                }
-            }
-            updateRPM();
-            setInterval(updateRPM, 1000);
-        }
+    const path = await window.electronAPI.searchPath(name1, name2);
+    if (path === "NONE") {
+        container.textContent = `Kein HWMon-Gerät für ${displayName} gefunden!`;
+        return;
     }
 
+    const count = await window.electronAPI.getFanCount(path);
 
+    for (let i = 1; i <= count; i++) {
+        const fanContainer = document.createElement('div');
+        fanContainer.classList.add('container');
 
+        // ---- Header ----
+        const header = document.createElement('div');
+        header.classList.add('fan-header');
 
+        const nameSpan = document.createElement('span');
+        nameSpan.classList.add('fan-name-span');
+        nameSpan.textContent =`Fan ${i}`;
+        nameSpan.style.cursor = 'pointer'; // klickbar zum Editieren
+
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.classList.add('fan-name-input');
+        nameInput.value = nameSpan.textContent;
+        nameInput.style.display = 'none';
+
+        // Klick auf Fan-Name öffnet Input
+        nameSpan.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            nameSpan.style.display = 'none';
+            nameInput.style.display = 'inline-block';
+            nameInput.focus();
+            nameInput.select();
+        });
+
+        nameInput.addEventListener('keydown', ev => {
+            if (ev.key === 'Enter') nameInput.blur();
+            else if (ev.key === 'Escape') {
+                nameInput.value = nameSpan.textContent;
+                nameInput.blur();
+            }
+            ev.stopPropagation();
+        });
+
+        nameInput.addEventListener('blur', () => {
+            const newName = nameInput.value.trim() || nameSpan.textContent;
+            nameSpan.textContent = newName;
+            nameInput.style.display = 'none';
+            nameSpan.style.display = 'inline';
+        });
+
+        const speedLabel = document.createElement('span');
+        speedLabel.classList.add('fan-rpm');
+        speedLabel.textContent = '--- RPM';
+
+        header.appendChild(nameSpan);
+        header.appendChild(nameInput);
+        header.appendChild(speedLabel);
+        fanContainer.appendChild(header);
+
+        // ---- Content (PWM-Regler) ----
+        const content = document.createElement('div');
+        content.classList.add('content');
+        content.style.overflow = 'visible';
+        content.style.maxHeight = 'none';
+
+        const inputContainer = document.createElement('div');
+        inputContainer.style.marginTop = '10px';
+        inputContainer.style.display = 'flex';
+        inputContainer.style.flexDirection = 'column';
+        inputContainer.style.gap = '8px';
+
+        const pwmLabel = document.createElement('label');
+        pwmLabel.htmlFor = `pwmEnable${i}`;
+        pwmLabel.textContent = 'Control ';
+
+        const pwmCheckbox = document.createElement('input');
+        pwmCheckbox.type = 'checkbox';
+        pwmCheckbox.id = `pwmEnable${i}`;
+
+        const pwmvalLabel = document.createElement('label');
+        pwmvalLabel.textContent = 'PWM value ';
+
+        const pwmInput = document.createElement('input');
+        pwmInput.type = 'range';
+        pwmInput.min = '0';
+        pwmInput.max = '255';
+        pwmInput.value = '0';
+
+        const pwmValueLabel = document.createElement('span');
+        pwmValueLabel.textContent = pwmInput.value;
+
+        pwmInput.addEventListener('input', () => {
+            if (!pwmCheckbox.checked) {
+                pwmInput.value = pwmValueLabel.textContent;
+                return;
+            }
+            pwmValueLabel.textContent = pwmInput.value;
+        });
+
+        pwmInput.disabled = !pwmCheckbox.checked;
+        pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
+
+        pwmCheckbox.addEventListener('change', () => {
+            pwmInput.disabled = !pwmCheckbox.checked;
+            pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
+        });
+
+        pwmValueLabel.style.fontSize = '0.9rem';
+        pwmValueLabel.style.color = '#f0f0f0';
+        pwmValueLabel.style.textAlign = 'center';
+
+        pwmInput.addEventListener('input', () => {
+            pwmValueLabel.textContent = pwmInput.value;
+        });
+
+        const applyButton = document.createElement('button');
+        applyButton.textContent = '✓';
+        applyButton.style.width = '30px';
+        applyButton.style.height = '30px';
+        applyButton.addEventListener('click', () => {
+            console.log(`${nameSpan.textContent} - PWM aktiv: ${pwmCheckbox.checked}, Wert: ${pwmInput.value}`);
+        });
+
+        [pwmLabel, pwmCheckbox, pwmvalLabel, pwmInput, pwmValueLabel, applyButton]
+            .forEach(el => inputContainer.appendChild(el));
+
+        content.appendChild(inputContainer);
+        fanContainer.appendChild(content);
+
+        container.appendChild(fanContainer);
+
+        // ---- RPM-Aktualisierung ----
+        const fanFile = `${path}/fan${i}_input`;
+        async function updateRPM() {
+            try {
+                const rpm = await window.electronAPI.getFanSpeed(fanFile);
+                speedLabel.textContent = `${rpm} RPM`;
+            } catch {
+                speedLabel.textContent = '--- RPM';
+            }
+        }
+        updateRPM();
+        setInterval(updateRPM, 1000);
+    }
+}
     createFanButtons("it87", "it86", "Fans");
-
-    const savedCurves = localStorage.getItem('curvesData');
-    if(savedCurves) JSON.parse(savedCurves).forEach(data => createCurveFromData(data));
 });
 
 
@@ -203,48 +223,29 @@ function drawMiniCurve(canvas, points) {
 // Großer Editor
 function openCurveEditor(points, miniCanvas, onSave) {
     const overlay = document.createElement('div');
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.background = 'rgba(0,0,0,0.7)';
-    overlay.style.display = 'flex';
-    overlay.style.justifyContent = 'center';
-    overlay.style.alignItems = 'center';
-    overlay.style.zIndex = '9999';
+    overlay.className = 'curve-editor-overlay'; // CSS Klasse
 
     const editorContainer = document.createElement('div');
-    editorContainer.style.position = 'relative';
+    editorContainer.className = 'curve-editor-container';
     overlay.appendChild(editorContainer);
 
     const canvas = document.createElement('canvas');
     canvas.width = 600;
     canvas.height = 300;
-    canvas.style.background = '#1e1e2f';
-    canvas.style.border = '1px solid #00bcd4';
+    canvas.className = 'curve-editor-canvas';
     editorContainer.appendChild(canvas);
 
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '✕';
-    closeBtn.style.position = 'absolute';
-    closeBtn.style.top = '-13px';
-    closeBtn.style.right = '-13px';
-    closeBtn.style.cursor = 'pointer';
-    closeBtn.style.padding = '5px 10px';
-    closeBtn.style.fontSize = '1rem';
-    closeBtn.style.backgroundColor = '#00bcd4';
-    closeBtn.style.color = '#fff';
-    closeBtn.style.border = 'none';
-    closeBtn.style.borderRadius = '4px';
+    closeBtn.className = 'curve-editor-close';
     closeBtn.addEventListener('click', () => document.body.removeChild(overlay));
     editorContainer.appendChild(closeBtn);
 
     document.body.appendChild(overlay);
-
     const ctx = canvas.getContext('2d');
 
     if (!points.find(p => p.x === 0)) points.unshift({ x: 0, y: 0 });
+
 
     function drawCurve() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -312,14 +313,10 @@ function openCurveEditor(points, miniCanvas, onSave) {
     }
 
     drawCurve();
-
     let selectedPoint = null;
 
     const coordDisplay = document.createElement('div');
-    coordDisplay.style.position = 'absolute';
-    coordDisplay.style.top = '10px';
-    coordDisplay.style.left = '10px';
-    coordDisplay.style.color = '#00bcd4';
+    coordDisplay.className = 'curve-editor-coord';
     editorContainer.appendChild(coordDisplay);
 
     canvas.addEventListener('mousedown', e => {
@@ -424,144 +421,128 @@ function openCurveEditor(points, miniCanvas, onSave) {
 addCurveBtn.addEventListener('click', () => {
     const curveContainer = document.createElement('div');
     curveContainer.className = 'curve-container';
-    curveContainer.style.width = '250px';       
-    curveContainer.style.flexShrink = '0';      
-    curveContainer.style.boxSizing = 'border-box';
-    curveContainer.style.display = 'flex';
-    curveContainer.style.flexDirection = 'column'; // Header + Mini-Canvas untereinander
-    curveContainer.style.gap = '6px';
 
     // --- Header ---
     const header = document.createElement('div');
-    header.style.display = 'flex';
-    header.style.justifyContent = 'space-between';
-    header.style.alignItems = 'center';
-    header.style.flexWrap = 'wrap';
-    header.style.gap = '6px';
+    header.className = 'header';
 
+    const leftGroup = document.createElement('div');
+    leftGroup.className = 'curve-left';
+
+    // Titel
     const title = document.createElement('span');
     const curveId = curveIdCounter++;
     title.textContent = `Curve ${curveId}`;
+    title.className = 'curve-title';
+    title.style.cursor = 'pointer'; // klickbar
     curveContainer.dataset.id = curveId;
-    title.style.fontWeight = 'bold';
-    title.style.fontSize = '0.9rem';
-    title.style.color = '#00bcd4';
 
-    // --- Fan-Auswahl ---
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.className = 'curve-title-input';
+    titleInput.value = title.textContent;
+    titleInput.style.display = 'none';
+
+    // Klick auf Titel -> editieren
+    title.addEventListener('click', () => {
+        title.style.display = 'none';
+        titleInput.style.display = 'inline-block';
+        titleInput.focus();
+        titleInput.select();
+    });
+
+    titleInput.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter') titleInput.blur();
+        else if (ev.key === 'Escape') {
+            titleInput.value = title.textContent;
+            titleInput.blur();
+        }
+        ev.stopPropagation();
+    });
+
+    titleInput.addEventListener('blur', () => {
+        const newName = titleInput.value.trim() || title.textContent;
+        title.textContent = newName;
+        title.style.display = 'inline';
+        titleInput.style.display = 'none';
+    });
+
+    leftGroup.appendChild(title);
+    leftGroup.appendChild(titleInput);
+
+    // --- Fans ---
     const fanContainer = document.createElement('div');
-    fanContainer.style.display = 'flex';
-    fanContainer.style.flexWrap = 'wrap';
-    fanContainer.style.gap = '3px';
-    fanContainer.style.border = '1px solid #00bcd4';
-    fanContainer.style.padding = '2px';
-    fanContainer.style.borderRadius = '4px';
-    fanContainer.style.background = 'rgba(0,188,212,0.1)';
-    fanContainer.style.minWidth = '70px';
+    fanContainer.className = 'curve-fans';
 
-    const fanHeaders = document.querySelectorAll('#buttonsContainer .container .header');
+    const fanHeaders = document.querySelectorAll('#buttonsContainer .container .fan-header');
     const selectedFans = new Set();
 
     fanHeaders.forEach((fan, idx) => {
         const nameInput = fan.querySelector('input[type="text"]');
         const btn = document.createElement('button');
         btn.textContent = nameInput ? nameInput.value : `Fan ${idx + 1}`;
-        btn.style.padding = '1px 4px';
-        btn.style.fontSize = '0.7rem';
-        btn.style.border = '1px solid #00bcd4';
-        btn.style.borderRadius = '4px';
-        btn.style.background = 'transparent';
-        btn.style.color = '#00bcd4';
-        btn.style.cursor = 'pointer';
+        btn.className = 'curve-fan-btn';
         btn.addEventListener('click', () => {
             if (selectedFans.has(idx + 1)) {
                 selectedFans.delete(idx + 1);
-                btn.style.background = 'transparent';
-                btn.style.color = '#00bcd4';
+                btn.classList.remove('selected');
             } else {
                 selectedFans.add(idx + 1);
-                btn.style.background = '#00bcd4';
-                btn.style.color = '#fff';
+                btn.classList.add('selected');
             }
         });
         fanContainer.appendChild(btn);
     });
 
-    // --- Sensor-Auswahl ---
+    leftGroup.appendChild(fanContainer);
+
+    // --- Sensoren & Action Buttons ---
+    const rightGroup = document.createElement('div');
+    rightGroup.className = 'curve-right';
+
     const sensors = ['CPU', 'GPU', 'Higher'];
     let selectedSensor = sensors[0];
-    const sensorContainer = document.createElement('div');
-    sensorContainer.style.display = 'flex';
-    sensorContainer.style.gap = '3px';
 
     sensors.forEach(s => {
         const btn = document.createElement('button');
         btn.textContent = s;
-        btn.style.padding = '1px 4px';
-        btn.style.fontSize = '0.7rem';
-        btn.style.border = '1px solid #00bcd4';
-        btn.style.borderRadius = '4px';
-        btn.style.background = s === selectedSensor ? '#00bcd4' : 'transparent';
-        btn.style.color = s === selectedSensor ? '#fff' : '#00bcd4';
-        btn.style.cursor = 'pointer';
+        btn.className = 'curve-sensor-btn';
+        if (s === selectedSensor) btn.classList.add('selected');
         btn.addEventListener('click', () => {
             selectedSensor = s;
-            Array.from(sensorContainer.children).forEach(c => {
-                c.style.background = 'transparent';
-                c.style.color = '#00bcd4';
-            });
-            btn.style.background = '#00bcd4';
-            btn.style.color = '#fff';
+            Array.from(rightGroup.querySelectorAll('.curve-sensor-btn'))
+                .forEach(c => c.classList.remove('selected'));
+            btn.classList.add('selected');
         });
-        sensorContainer.appendChild(btn);
+        rightGroup.appendChild(btn);
     });
 
-    // --- Edit + Delete Buttons ---
+    const actionBtnContainer = document.createElement('div');
+    actionBtnContainer.style.display = 'flex';
+    actionBtnContainer.style.gap = '4px';
+    actionBtnContainer.style.marginTop = '4px';
+
     const editBtn = document.createElement('button');
     editBtn.textContent = '✎';
-    editBtn.style.padding = '2px 5px';
-    editBtn.style.fontSize = '0.7rem';
-    editBtn.style.border = '1px solid #00bcd4';
-    editBtn.style.borderRadius = '4px';
-    editBtn.style.background = 'transparent';
-    editBtn.style.cursor = 'pointer';
-    editBtn.style.color = '#00bcd4';
+    editBtn.className = 'curve-action-btn';
 
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = '🗑';
-    deleteBtn.style.padding = '2px 5px';
-    deleteBtn.style.fontSize = '0.7rem';
-    deleteBtn.style.border = '1px solid #00bcd4';
-    deleteBtn.style.borderRadius = '4px';
-    deleteBtn.style.background = 'transparent';
-    deleteBtn.style.cursor = 'pointer';
-    deleteBtn.style.color = '#00bcd4';
+    deleteBtn.className = 'curve-action-btn';
     deleteBtn.addEventListener('click', () => curvesContainer.removeChild(curveContainer));
 
-    // --- Header zusammenbauen ---
-    const leftGroup = document.createElement('div');
-    leftGroup.style.display = 'flex';
-    leftGroup.style.flexDirection = 'column';
-    leftGroup.style.gap = '4px';
-    leftGroup.appendChild(title);
-    leftGroup.appendChild(fanContainer);
-
-    const rightGroup = document.createElement('div');
-    rightGroup.style.display = 'flex';
-    rightGroup.style.gap = '4px';
-    rightGroup.appendChild(sensorContainer);
-    rightGroup.appendChild(editBtn);
-    rightGroup.appendChild(deleteBtn);
+    actionBtnContainer.appendChild(editBtn);
+    actionBtnContainer.appendChild(deleteBtn);
+    rightGroup.appendChild(actionBtnContainer);
 
     header.appendChild(leftGroup);
     header.appendChild(rightGroup);
 
     // --- Mini-Canvas ---
     const miniCanvas = document.createElement('canvas');
+    miniCanvas.className = 'curve-mini-canvas';
     miniCanvas.width = 200;
     miniCanvas.height = 100;
-    miniCanvas.style.width = '100%';
-    miniCanvas.style.height = 'auto';
-    miniCanvas.style.display = 'block';
 
     curveContainer.appendChild(header);
     curveContainer.appendChild(miniCanvas);
@@ -570,10 +551,14 @@ addCurveBtn.addEventListener('click', () => {
     let curvePoints = [{ x: 0, y: 0 }];
     drawMiniCurve(miniCanvas, curvePoints);
 
+    // Edit-Button öffnet Mini-Editor
     editBtn.addEventListener('click', () => {
         openCurveEditor(curvePoints, miniCanvas, updatedPoints => {
             curvePoints = updatedPoints;
             drawMiniCurve(miniCanvas, curvePoints);
         });
+
     });
 });
+
+

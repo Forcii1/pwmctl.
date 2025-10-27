@@ -1,22 +1,41 @@
-/* ===================== Basis ===================== */
+/* ========== Variablen ========== */
+:root {
+  --primary-color: #00bcd4;
+  --primary-color-hover: #26d3ea;
+  --background-fade: rgba(255,255,255,0.04);
+  --background-content: rgba(255,255,255,0.02);
+  --border-radius: 6px;
+  --container-radius: 12px;
+  --shadow: 0 0 6px rgba(0,0,0,0.25);
+  --font-main: "Inter", sans-serif;
+}
+
+/* ========== Allgemeines Layout ========== */
 body {
-  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  font-family: var(--font-main);
   background: linear-gradient(135deg, #1e1e2f, #2c3e50);
   color: #f0f0f0;
+  margin: 0;
+  padding: 20px;
+  min-height: calc(100vh - 40px);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  height: 100vh;
-  margin: 0;
-  padding-top: 80px; /* Platz für Logo */
+}
+
+/* ========== Container ========== */
+.container, .curve-container {
+  background: transparent;
+  box-shadow: var(--shadow);
+  border-radius: var(--container-radius);
+  margin-bottom: 12px;
   overflow: hidden;
 }
 
+/* ========== Typografie ========== */
 h1 {
   font-size: 2rem;
   margin-bottom: 0.5rem;
-  color: #00bcd4;
+  color: var(--primary-color);
   text-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
@@ -25,161 +44,134 @@ p {
   color: #ccc;
 }
 
-/* ===================== Buttons Container ===================== */
-#buttonsContainer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: flex-start;
-  justify-content: center;
-  margin-top: 30px;
-}
-
-/* Quadratische Buttons */
-#buttonsContainer button {
-  width: 70px;
-  height: 70px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #fff;
-  background-color: #00bcd4;
+/* ========== Buttons ========== */
+button {
+  cursor: pointer;
   border: none;
-  border-radius: 10px;
-  cursor: pointer;
+  border-radius: var(--border-radius);
+  background-color: var(--primary-color);
+  color: #fff;
+  padding: 6px 10px;
+  font-size: 0.9rem;
   transition: 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-#buttonsContainer button:hover {
-  background-color: #0097a7;
-  transform: scale(1.05);
+button:hover {
+  background-color: #009bb1;
 }
 
-/* ===================== Logo ===================== */
-.logo {
-  position: fixed;
-  top: 15px;
-  left: 20px;
-  font-size: 1.6rem;
-  color: #00bcd4;
-  margin: 0;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.4);
-}
-
-/* ===================== Fan Container ===================== */
-.container {
-  border-radius: 12px;
-  margin: 5px 0;
-  width: 160px;
-  box-sizing: border-box;
-  background: linear-gradient(135deg, #1e1e2f, #2c3e50);
-  border: 1px solid #00bcd4;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.container:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 15px rgba(0,0,0,0.6);
-}
-
-.header {
-  padding: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  background: rgba(0,188,212,0.1);
-  border-bottom: none;
-  border-radius: 12px 12px 0 0;
-  text-align: center;
-  color: #00bcd4;
-  font-size: 0.95rem;
-}
-
-.content {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease, padding 0.3s ease;
-  padding: 8px;
-  box-sizing: border-box;
-  background: rgba(0,188,212,0.05);
-  border-radius: 0 0 12px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* ===================== Inputs & Slider ===================== */
-.content div {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* ========== Inputs ========== */
+input[type="text"],
+input[type="range"],
+select {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #fff;
+  border-radius: var(--border-radius);
+  
+  font-size: 0.9rem;
 }
 
 input[type="range"] {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: #0097a7;
-  outline: none;
+  accent-color: var(--primary-color);
 }
 
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #00bcd4;
-  cursor: pointer;
-  transition: 0.2s;
+/* ========== Fan Header ========== */
+.fan-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(0,188,212,0.08);
+  border-radius: var(--container-radius) var(--container-radius) 0 0;
+  color: var(--primary-color);
+  user-select: none;
 }
 
-input[type="range"]::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #00bcd4;
-  cursor: pointer;
-}
-
-/* ===================== Kleine Buttons ===================== */
-.content div button {
-  padding: 2px 6px;
-  min-width: 28px;
-  height: 28px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background-color: #00bcd4;
-  border: none;
-  border-radius: 6px;
+.fan-name-span {
   color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.fan-name-input {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--border-radius);
+  font-size: 0.95rem;
+  max-width: 140px;
+}
+
+.fan-edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--primary-color);
   cursor: pointer;
-  align-self: flex-end;
-  transition: 0.2s;
+  padding: 2px 6px;
+  font-size: 0.85rem;
+  transition: color 0.2s;
 }
 
-.content div button:hover {
-  background-color: #0097a7;
-  transform: scale(1.05);
+.fan-edit-btn:hover {
+  color: var(--primary-color-hover);
 }
 
-/* ===================== Checkbox ===================== */
+.fan-rpm {
+  font-size: 0.85rem;
+  color: var(--primary-color);
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+/* ========== Content (immer sichtbar) ========== */
+.content {
+  max-height: none;
+  overflow: visible;
+  padding: 10px;
+  background: var(--background-content);
+  transition: none;
+}
+
+.content div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.content label {
+  font-size: 0.85rem;
+  color: #ccc;
+}
+
+.content span {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #f0f0f0;
+}
+
 .content div input[type="checkbox"] {
   appearance: none;
   width: 20px;
   height: 20px;
   background-color: #555;
-  border-radius: 6px;
-  border: 1px solid #00bcd4;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--primary-color);
   cursor: pointer;
   position: relative;
   transition: 0.3s;
 }
 
 .content div input[type="checkbox"]:checked {
-  background-color: #00bcd4;
+  background-color: var(--primary-color);
   border-color: #0097a7;
 }
 
@@ -195,92 +187,148 @@ input[type="range"]::-moz-range-thumb {
   transform: rotate(45deg);
 }
 
-/* ===================== Curves ===================== */
+/* ========== Curve Container ========== */
 .curve-container {
-  border: 1px solid #00bcd4;
-  border-radius: 8px;
-  padding: 8px;
-  background: rgba(0,188,212,0.05);
+  background: var(--background-fade);
+  border-radius: var(--container-radius);
+  padding: 12px;
+  margin-bottom: 14px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.3);
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: 0.2s;
 }
 
-.curve-container:hover {
-  background: rgba(0,188,212,0.12);
+.curve-container .header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.curve-container canvas {
-  border: 1px solid #0097a7;
-  border-radius: 6px;
-  background: #1e1e2f;
+/* ========== Curve Left & Right ========== */
+.curve-left, .curve-right {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
+
+.curve-title {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: var(--primary-color);
+}
+
+.curve-fans {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.curve-fan-btn,
+.curve-sensor-btn,
+.curve-action-btn {
+  padding: 1px 4px;
+  font-size: 0.7rem;
+  border: 1px solid var(--primary-color);
+  border-radius: var(--border-radius);
+  background: transparent;
+  color: var(--primary-color);
+  cursor: pointer;
+}
+
+.curve-fan-btn.selected,
+.curve-sensor-btn.selected {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+/* Sensors unter Fans */
+.curve-sensors {
+  display: flex;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+/* ========== Mini-Canvas ========== */
+.curve-mini-canvas {
+  width: 100%;
+  height: 100px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.2);
+}
+
+/* ========== Add Curve Button ========== */
 #addCurveBtn {
-    width: 40px;
-    height: 40px;
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #fff;
-    background-color: #00bcd4;
-    border: none;
-    border-radius: 50%;  /* rund */
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    transition: 0.2s;
+  background: rgba(0,188,212,0.2);
+  color: var(--primary-color);
+  font-weight: 600;
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 10px;
+  padding: 10px 0;
+  font-size: 1rem;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 #addCurveBtn:hover {
-    background-color: #0097a7;
-    transform: scale(1.1);
+  background: rgba(0,188,212,0.3);
+  color: var(--primary-color-hover);
 }
-/* ===================== Fan-Toggle für Curves ===================== */
-.fan-toggles {
+
+/* ========== Fans oben responsiv ========== */
+#buttonsContainer {
   display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-start;
-  
+  gap: 10px;
 }
 
-.fan-toggles button {
-  flex: 1 1 40px;
-  min-width: 40px;
-  height: 32px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #fff;
-  background: #0097a7;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: 0.2s;
+/* ========== Scrollbar ========== */
+body::-webkit-scrollbar {
+  display: none;
 }
 
-.fan-toggles button.active {
-  background: #00bcd4;
-}
-
-.fan-toggles button:hover {
-  background: #00acc1;
-}
-
-#curvesContainer {
-    display: flex;          /* macht es zu einem Flex-Container */
-    flex-direction: row;    /* nebeneinander anordnen */
-    flex-wrap: wrap;        /* Umbruch, falls Platz nicht reicht */
-    gap: 10px;              /* Abstand zwischen den Curves */
-    align-items: flex-start;  
-    justify-content: flex-start;
-}
-
-.curve-container {
-  width: 250px;
-  flex-shrink: 0;        /* nicht schrumpfen */
+/* ========== Curve Editor Overlay ========== */
+.curve-editor-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7);
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.curve-editor-container {
+  position: relative;
+}
+
+.curve-editor-canvas {
+  background: #1e1e2f;
+  border: 1px solid var(--primary-color);
+  border-radius: var(--border-radius);
+}
+
+.curve-editor-close {
+  position: absolute;
+  top: -13px; right: -13px;
+  cursor: pointer;
+  padding: 5px 10px;
+  font-size: 1rem;
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+}
+
+.curve-editor-coord {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: var(--primary-color);
+  font-size: 0.85rem;
 }
