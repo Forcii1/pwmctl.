@@ -1,0 +1,2 @@
+sudo groupadd pwm
+sudo usermod -aG pwm $USER

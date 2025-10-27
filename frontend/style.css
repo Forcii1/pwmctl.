@@ -1,0 +1,286 @@
+/* ===================== Basis ===================== */
+body {
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  background: linear-gradient(135deg, #1e1e2f, #2c3e50);
+  color: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100vh;
+  margin: 0;
+  padding-top: 80px; /* Platz für Logo */
+  overflow: hidden;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: #00bcd4;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+p {
+  font-size: 1rem;
+  color: #ccc;
+}
+
+/* ===================== Buttons Container ===================== */
+#buttonsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+/* Quadratische Buttons */
+#buttonsContainer button {
+  width: 70px;
+  height: 70px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  background-color: #00bcd4;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#buttonsContainer button:hover {
+  background-color: #0097a7;
+  transform: scale(1.05);
+}
+
+/* ===================== Logo ===================== */
+.logo {
+  position: fixed;
+  top: 15px;
+  left: 20px;
+  font-size: 1.6rem;
+  color: #00bcd4;
+  margin: 0;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+/* ===================== Fan Container ===================== */
+.container {
+  border-radius: 12px;
+  margin: 5px 0;
+  width: 160px;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #1e1e2f, #2c3e50);
+  border: 1px solid #00bcd4;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0,0,0,0.6);
+}
+
+.header {
+  padding: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(0,188,212,0.1);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  text-align: center;
+  color: #00bcd4;
+  font-size: 0.95rem;
+}
+
+.content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 8px;
+  box-sizing: border-box;
+  background: rgba(0,188,212,0.05);
+  border-radius: 0 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ===================== Inputs & Slider ===================== */
+.content div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #0097a7;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #00bcd4;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #00bcd4;
+  cursor: pointer;
+}
+
+/* ===================== Kleine Buttons ===================== */
+.content div button {
+  padding: 2px 6px;
+  min-width: 28px;
+  height: 28px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background-color: #00bcd4;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  align-self: flex-end;
+  transition: 0.2s;
+}
+
+.content div button:hover {
+  background-color: #0097a7;
+  transform: scale(1.05);
+}
+
+/* ===================== Checkbox ===================== */
+.content div input[type="checkbox"] {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background-color: #555;
+  border-radius: 6px;
+  border: 1px solid #00bcd4;
+  cursor: pointer;
+  position: relative;
+  transition: 0.3s;
+}
+
+.content div input[type="checkbox"]:checked {
+  background-color: #00bcd4;
+  border-color: #0097a7;
+}
+
+.content div input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* ===================== Curves ===================== */
+.curve-container {
+  border: 1px solid #00bcd4;
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(0,188,212,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: 0.2s;
+}
+
+.curve-container:hover {
+  background: rgba(0,188,212,0.12);
+}
+
+.curve-container canvas {
+  border: 1px solid #0097a7;
+  border-radius: 6px;
+  background: #1e1e2f;
+}
+#addCurveBtn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #fff;
+    background-color: #00bcd4;
+    border: none;
+    border-radius: 50%;  /* rund */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    transition: 0.2s;
+}
+
+#addCurveBtn:hover {
+    background-color: #0097a7;
+    transform: scale(1.1);
+}
+/* ===================== Fan-Toggle für Curves ===================== */
+.fan-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-start;
+  
+}
+
+.fan-toggles button {
+  flex: 1 1 40px;
+  min-width: 40px;
+  height: 32px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  background: #0097a7;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.fan-toggles button.active {
+  background: #00bcd4;
+}
+
+.fan-toggles button:hover {
+  background: #00acc1;
+}
+
+#curvesContainer {
+    display: flex;          /* macht es zu einem Flex-Container */
+    flex-direction: row;    /* nebeneinander anordnen */
+    flex-wrap: wrap;        /* Umbruch, falls Platz nicht reicht */
+    gap: 10px;              /* Abstand zwischen den Curves */
+    align-items: flex-start;  
+    justify-content: flex-start;
+}
+
+.curve-container {
+  width: 250px;
+  flex-shrink: 0;        /* nicht schrumpfen */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
