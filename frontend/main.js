@@ -46,7 +46,7 @@ ipcMain.handle('get-fan-count', (event, dirPath) => {
   }
 });
 
-ipcMain.handle('get-fan-speed', async (event, filePath) => {
+ipcMain.handle('get-speed', async (event, filePath) => {
     try {
         // fs.promises.readFile gibt ein Promise zurück, daher async/await
         const data = await fs.promises.readFile(filePath, 'utf8');
@@ -56,3 +56,4 @@ ipcMain.handle('get-fan-speed', async (event, filePath) => {
         return 0;
     }
 });
+

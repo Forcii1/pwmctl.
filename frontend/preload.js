@@ -37,7 +37,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   searchPath,
   getFanSpeed: (filePath) => {
-    return ipcRenderer.invoke('get-fan-speed', filePath);
+    return ipcRenderer.invoke('get-speed', filePath);
   }
 });
 

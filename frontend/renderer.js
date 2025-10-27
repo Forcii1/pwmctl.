@@ -6,19 +6,40 @@ window.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('buttonsContainer');
     if (!container) return console.error("buttonsContainer not found!");
 
-async function createFanButtons(name1, name2, displayName) {
-    const container = document.getElementById('buttonsContainer');
-    container.innerHTML = '';
+    async function createFanButtons(name1, name2, displayName) {
+        const container = document.getElementById('buttonsContainer');
+        container.innerHTML = '';
 
-    const path = await window.electronAPI.searchPath(name1, name2);
-    if (path === "NONE") {
-        container.textContent = `Kein HWMon-Gerät für ${displayName} gefunden!`;
-        return;
+        // --- HWMon Pfad ---
+        const path = await window.electronAPI.searchPath(name1, name2);
+        if (path === "NONE") {
+            container.textContent = `Kein HWMon-Gerät für ${displayName} gefunden!`;
+            return;
+        }
+
+        // --- NVIDIA Fan Pfad ---
+        let nvidiaFanFile = null;
+        const gpupath = await window.electronAPI.searchPath("amdgpu");
+        if (gpupath !== "NONE") {
+            nvidiaFanFile = gpupath + "/fan1_input";
+        }
+
+        const count = await window.electronAPI.getFanCount(path);
+
+        // --- HWMon Fans ---
+        for (let i = 1; i <= count; i++) {
+            const fanFile = `${path}/fan${i}_input`;
+            createFanUI(container, `Fan ${i}`, fanFile, true); // PWM aktiv
+        }
+
+        // --- NVIDIA Fan ---
+        if (nvidiaFanFile) {
+            createFanUI(container, "GPU Fan", nvidiaFanFile, false); // kein PWM
+        }
     }
 
-    const count = await window.electronAPI.getFanCount(path);
-
-    for (let i = 1; i <= count; i++) {
+    // --- Hilfsfunktion für einen Fan ---
+    function createFanUI(container, fanName, fanFile, showPWM) {
         const fanContainer = document.createElement('div');
         fanContainer.classList.add('container');
 
@@ -28,38 +49,27 @@ async function createFanButtons(name1, name2, displayName) {
 
         const nameSpan = document.createElement('span');
         nameSpan.classList.add('fan-name-span');
-        nameSpan.textContent =`Fan ${i}`;
-        nameSpan.style.cursor = 'pointer'; // klickbar zum Editieren
+        nameSpan.textContent = fanName;
+        nameSpan.style.cursor = 'pointer';
 
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
         nameInput.classList.add('fan-name-input');
-        nameInput.value = nameSpan.textContent;
+        nameInput.value = fanName;
         nameInput.style.display = 'none';
 
-        // Klick auf Fan-Name öffnet Input
-        nameSpan.addEventListener('click', (ev) => {
-            ev.stopPropagation();
+        nameSpan.addEventListener('click', () => {
             nameSpan.style.display = 'none';
             nameInput.style.display = 'inline-block';
             nameInput.focus();
             nameInput.select();
         });
 
-        nameInput.addEventListener('keydown', ev => {
-            if (ev.key === 'Enter') nameInput.blur();
-            else if (ev.key === 'Escape') {
-                nameInput.value = nameSpan.textContent;
-                nameInput.blur();
-            }
-            ev.stopPropagation();
-        });
-
         nameInput.addEventListener('blur', () => {
             const newName = nameInput.value.trim() || nameSpan.textContent;
             nameSpan.textContent = newName;
-            nameInput.style.display = 'none';
             nameSpan.style.display = 'inline';
+            nameInput.style.display = 'none';
         });
 
         const speedLabel = document.createElement('span');
@@ -71,80 +81,53 @@ async function createFanButtons(name1, name2, displayName) {
         header.appendChild(speedLabel);
         fanContainer.appendChild(header);
 
-        // ---- Content (PWM-Regler) ----
-        const content = document.createElement('div');
-        content.classList.add('content');
-        content.style.overflow = 'visible';
-        content.style.maxHeight = 'none';
+        // ---- PWM (nur HWMon) ----
+        if (showPWM) {
+            const content = document.createElement('div');
+            content.classList.add('content');
+            content.style.overflow = 'visible';
+            content.style.maxHeight = 'none';
 
-        const inputContainer = document.createElement('div');
-        inputContainer.style.marginTop = '10px';
-        inputContainer.style.display = 'flex';
-        inputContainer.style.flexDirection = 'column';
-        inputContainer.style.gap = '8px';
+            const inputContainer = document.createElement('div');
+            inputContainer.style.marginTop = '10px';
+            inputContainer.style.display = 'flex';
+            inputContainer.style.flexDirection = 'column';
+            inputContainer.style.gap = '8px';
 
-        const pwmLabel = document.createElement('label');
-        pwmLabel.htmlFor = `pwmEnable${i}`;
-        pwmLabel.textContent = 'Control ';
-
-        const pwmCheckbox = document.createElement('input');
-        pwmCheckbox.type = 'checkbox';
-        pwmCheckbox.id = `pwmEnable${i}`;
-
-        const pwmvalLabel = document.createElement('label');
-        pwmvalLabel.textContent = 'PWM value ';
-
-        const pwmInput = document.createElement('input');
-        pwmInput.type = 'range';
-        pwmInput.min = '0';
-        pwmInput.max = '255';
-        pwmInput.value = '0';
-
-        const pwmValueLabel = document.createElement('span');
-        pwmValueLabel.textContent = pwmInput.value;
-
-        pwmInput.addEventListener('input', () => {
-            if (!pwmCheckbox.checked) {
-                pwmInput.value = pwmValueLabel.textContent;
-                return;
-            }
+            const pwmLabel = document.createElement('label');
+            pwmLabel.textContent = 'Control ';
+            const pwmCheckbox = document.createElement('input');
+            pwmCheckbox.type = 'checkbox';
+            const pwmvalLabel = document.createElement('label');
+            pwmvalLabel.textContent = 'PWM value ';
+            const pwmInput = document.createElement('input');
+            pwmInput.type = 'range';
+            pwmInput.min = '0';
+            pwmInput.max = '255';
+            pwmInput.value = '0';
+            const pwmValueLabel = document.createElement('span');
             pwmValueLabel.textContent = pwmInput.value;
-        });
 
-        pwmInput.disabled = !pwmCheckbox.checked;
-        pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
-
-        pwmCheckbox.addEventListener('change', () => {
             pwmInput.disabled = !pwmCheckbox.checked;
             pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
-        });
 
-        pwmValueLabel.style.fontSize = '0.9rem';
-        pwmValueLabel.style.color = '#f0f0f0';
-        pwmValueLabel.style.textAlign = 'center';
+            pwmCheckbox.addEventListener('change', () => {
+                pwmInput.disabled = !pwmCheckbox.checked;
+                pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
+            });
 
-        pwmInput.addEventListener('input', () => {
-            pwmValueLabel.textContent = pwmInput.value;
-        });
+            pwmInput.addEventListener('input', () => {
+                if (pwmCheckbox.checked) pwmValueLabel.textContent = pwmInput.value;
+            });
 
-        const applyButton = document.createElement('button');
-        applyButton.textContent = '✓';
-        applyButton.style.width = '30px';
-        applyButton.style.height = '30px';
-        applyButton.addEventListener('click', () => {
-            console.log(`${nameSpan.textContent} - PWM aktiv: ${pwmCheckbox.checked}, Wert: ${pwmInput.value}`);
-        });
-
-        [pwmLabel, pwmCheckbox, pwmvalLabel, pwmInput, pwmValueLabel, applyButton]
-            .forEach(el => inputContainer.appendChild(el));
-
-        content.appendChild(inputContainer);
-        fanContainer.appendChild(content);
+            [pwmLabel, pwmCheckbox, pwmvalLabel, pwmInput, pwmValueLabel].forEach(el => inputContainer.appendChild(el));
+            content.appendChild(inputContainer);
+            fanContainer.appendChild(content);
+        }
 
         container.appendChild(fanContainer);
 
-        // ---- RPM-Aktualisierung ----
-        const fanFile = `${path}/fan${i}_input`;
+        // ---- RPM Aktualisierung ----
         async function updateRPM() {
             try {
                 const rpm = await window.electronAPI.getFanSpeed(fanFile);
@@ -156,7 +139,7 @@ async function createFanButtons(name1, name2, displayName) {
         updateRPM();
         setInterval(updateRPM, 1000);
     }
-}
+
     createFanButtons("it87", "it86", "Fans");
 });
 
