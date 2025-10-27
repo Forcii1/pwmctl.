@@ -1,5 +1,5 @@
 const curvesContainer = document.getElementById('curvesContainer');
-const addCurveBtn = document.getElementById('addCurveBtn'); // <--- wichtig
+const addCurveBtn = document.getElementById('addCurveBtn');
 let curveIdCounter = 1;
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -7,43 +7,42 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (!container) return console.error("buttonsContainer not found!");
 
     async function createFanButtons(name1, name2, displayName) {
-        const container = document.getElementById('buttonsContainer');
         container.innerHTML = '';
 
         // --- HWMon Pfad ---
-        const path = await window.electronAPI.searchPath(name1, name2);
-        if (path === "NONE") {
+        const hwmonPath = await window.electronAPI.searchPath(name1, name2);
+        if (hwmonPath === "NONE") {
             container.textContent = `Kein HWMon-Gerät für ${displayName} gefunden!`;
             return;
         }
 
-        // --- NVIDIA Fan Pfad ---
-        let nvidiaFanFile = null;
-        const gpupath = await window.electronAPI.searchPath("amdgpu");
+        // --- GPU Fan Pfad ---
+        let gpuFanFile = null;
+        let isNvidia = false;
+        const gpupath = await window.electronAPI.searchPath("amdgpu"); // HWMon GPU
         if (gpupath !== "NONE") {
-            nvidiaFanFile = gpupath + "/fan1_input";
+            gpuFanFile = gpupath + "/fan1_target"; // HWMon-style
+        } else {
+            isNvidia = true; // NVIDIA über Script (%)
+            gpuFanFile = "NVIDIA GPU";
         }
 
-        const count = await window.electronAPI.getFanCount(path);
+        const count = await window.electronAPI.getFanCount(hwmonPath);
 
         // --- HWMon Fans ---
         for (let i = 1; i <= count; i++) {
-            const fanFile = `${path}/fan${i}_input`;
-            createFanUI(container, `Fan ${i}`, fanFile, true); // PWM aktiv
+            const fanFile = `${hwmonPath}/fan${i}_input`;
+            createFanUI(container, `Fan ${i}`, fanFile, true, false); // PWM aktiv, nicht NVIDIA
         }
 
-        // --- NVIDIA Fan ---
-        if (nvidiaFanFile) {
-            createFanUI(container, "GPU Fan", nvidiaFanFile, false); // kein PWM
-        }
+        // --- GPU Fan ---
+        createFanUI(container, "GPU Fan", gpuFanFile, true, isNvidia);
     }
 
-    // --- Hilfsfunktion für einen Fan ---
-    function createFanUI(container, fanName, fanFile, showPWM) {
+    function createFanUI(container, fanName, fanFile, showPWM, isNvidia) {
         const fanContainer = document.createElement('div');
         fanContainer.classList.add('container');
 
-        // ---- Header ----
         const header = document.createElement('div');
         header.classList.add('fan-header');
 
@@ -74,14 +73,14 @@ window.addEventListener('DOMContentLoaded', async () => {
 
         const speedLabel = document.createElement('span');
         speedLabel.classList.add('fan-rpm');
-        speedLabel.textContent = '--- RPM';
+        speedLabel.textContent = '--- ' + (isNvidia ? '%' : 'RPM');
 
         header.appendChild(nameSpan);
         header.appendChild(nameInput);
         header.appendChild(speedLabel);
         fanContainer.appendChild(header);
 
-        // ---- PWM (nur HWMon) ----
+        // ---- PWM + Slider (auch für NVIDIA) ----
         if (showPWM) {
             const content = document.createElement('div');
             content.classList.add('content');
@@ -104,6 +103,9 @@ window.addEventListener('DOMContentLoaded', async () => {
             pwmInput.type = 'range';
             pwmInput.min = '0';
             pwmInput.max = '255';
+            if(isNvidia){
+                pwmInput.max = '100';
+            }
             pwmInput.value = '0';
             const pwmValueLabel = document.createElement('span');
             pwmValueLabel.textContent = pwmInput.value;
@@ -127,22 +129,26 @@ window.addEventListener('DOMContentLoaded', async () => {
 
         container.appendChild(fanContainer);
 
-        // ---- RPM Aktualisierung ----
-        async function updateRPM() {
+        // ---- Aktualisierung (RPM oder %) ----
+        async function updateSpeed() {
             try {
-                const rpm = await window.electronAPI.getFanSpeed(fanFile);
-                speedLabel.textContent = `${rpm} RPM`;
+                let speed = 0;
+                if (isNvidia && fanFile === "NVIDIA GPU") {
+                    speed = await window.electronAPI.getNvidiaFan(); // Script liefert %
+                } else {
+                    speed = await window.electronAPI.getFanSpeed(fanFile); // HWMon
+                }
+                speedLabel.textContent = speed + (isNvidia ? '%' : ' RPM');
             } catch {
-                speedLabel.textContent = '--- RPM';
+                speedLabel.textContent = '--- ' + (isNvidia ? '%' : 'RPM');
             }
         }
-        updateRPM();
-        setInterval(updateRPM, 1000);
+        updateSpeed();
+        setInterval(updateSpeed, 1000);
     }
 
     createFanButtons("it87", "it86", "Fans");
 });
-
 
 
 
