@@ -48,6 +48,16 @@ p {
   pointer-events: none; /* verhindert Klicks und Mausinteraktion */
 }
 
+.applybtn{
+  margin-top: 5px; 
+  width: max-content; 
+  cursor: pointer;
+  /*margin-left: auto; 
+  margin-right: 0;*/
+  margin-top: -1px;
+
+}
+
 /* ========== Buttons ========== */
 button {
   cursor: pointer;

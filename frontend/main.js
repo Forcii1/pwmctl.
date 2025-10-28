@@ -3,9 +3,12 @@ const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
 
+const configPath = path.join(__dirname, 'curves.json');
+
+
 function createWindow() {
     const win = new BrowserWindow({
-        width: 1000,
+        width: 1200,
         height: 800,
         autoHideMenuBar: true,
         webPreferences: {
@@ -67,3 +70,17 @@ function getNvidiaFan() {
     }
 }
 ipcMain.handle('get-nvidia-fan', () => getNvidiaFan());
+
+
+
+// Speichern
+ipcMain.handle('saveAllData', (event, data) => {
+    if (!data) return console.error("❌ saveAllData: no data received!");
+    fs.writeFileSync(configPath, JSON.stringify(data, null, 4), 'utf-8');
+    console.log("✅ Konfiguration gespeichert:", configPath);
+});
+
+ipcMain.handle('loadAllData', () => {
+    if (!fs.existsSync(configPath)) return null;
+    return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+});

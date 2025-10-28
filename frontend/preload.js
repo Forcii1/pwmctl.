@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { contextBridge, ipcRenderer } = require('electron');
+const configPath = path.join(__dirname, 'curves.json');
+
 
 function searchPath(name1, name2 = "") {
   const hwmonBase = '/sys/class/hwmon/';
@@ -41,5 +43,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('get-speed', filePath);
   },
   getNvidiaFan: () => ipcRenderer.invoke('get-nvidia-fan'),
+  saveAllData: (data) => ipcRenderer.invoke('saveAllData', data),
+  loadAllData: () => ipcRenderer.invoke('loadAllData')
 });
 
