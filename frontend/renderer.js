@@ -102,6 +102,23 @@ window.addEventListener('DOMContentLoaded', async () => {
             pwmInput.disabled = !pwmCheckbox.checked;
             pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
 
+
+            const curveselect = document.createElement('select');
+            curveselect.id="myCurveSelect"
+            // 2. Alle Kurven-Container finden
+            const curves = document.querySelectorAll('.curve-container');
+            
+            // 3. Optionen hinzufügen
+            curves.forEach(curve => {
+                const title = curve.querySelector('.curve-title');
+                const id = curve.dataset.id; // die ID aus data-id
+                if (title && id !== undefined) {
+                    const option = new Option(title.textContent, id); // Text = Name, Value = ID
+                    curveselect.options.add(option);
+                }
+            });
+
+
             const pwmValueLabel = document.createElement('span');
             pwmValueLabel.textContent = pwmInput.value;
 
@@ -123,7 +140,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 saveData();
             });
 
-            [pwmLabel,pwmCheckbox,pwmvalLabel, pwmInput, pwmValueLabel, applyBtn].forEach(el => inputContainer.appendChild(el));
+            [pwmLabel,pwmCheckbox,pwmvalLabel, pwmInput, pwmValueLabel,curveselect, applyBtn].forEach(el => inputContainer.appendChild(el));
             content.appendChild(inputContainer);
             fanContainer.appendChild(content);
         }
@@ -169,11 +186,21 @@ window.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
-
+    async function updateCurveSelect() {
+        const curves = document.querySelectorAll('.curve-container');
+        curves.forEach(curve => {
+            const title = curve.querySelector('.curve-title');
+            const id = curve.dataset.id;
+            if (title) {
+                curveselect.options.add(new Option(title.textContent, id));
+            }
+        });
+    }
     // ---------------- Alles laden ----------------
     const savedData = await window.electronAPI.loadAllData();
-    await createFanButtons("it87", "it86", "Fans", savedData);
     await loadCurves(savedData);
+    await createFanButtons("it87", "it86", "Fans", savedData);
+
 });
 
 
@@ -464,7 +491,7 @@ function createCurveElement(name, id = curveIdCounter++, points = [{ x: 0, y: 0 
     leftGroup.appendChild(title);
     leftGroup.appendChild(titleInput);
 
-    const fanContainer = document.createElement('div');
+    /*const fanContainer = document.createElement('div');
     fanContainer.className = 'curve-fans';
     const fanHeaders = document.querySelectorAll('#buttonsContainer .container .fan-header');
     fanHeaders.forEach((fan, idx) => {
@@ -475,7 +502,7 @@ function createCurveElement(name, id = curveIdCounter++, points = [{ x: 0, y: 0 
         btn.addEventListener('click', () => btn.classList.toggle('selected'));
         fanContainer.appendChild(btn);
     });
-    leftGroup.appendChild(fanContainer);
+    leftGroup.appendChild(fanContainer);*/
 
     const rightGroup = document.createElement('div');
     rightGroup.className = 'curve-right';
@@ -536,7 +563,7 @@ function createCurveElement(name, id = curveIdCounter++, points = [{ x: 0, y: 0 
             points = updatedPoints;
         });
     });
-
+    
 
     return curveContainer;
 }

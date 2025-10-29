@@ -13,10 +13,8 @@ function searchPath(name1, name2 = "") {
     console.log(`[Preload] Found ${entries.length} entries in ${hwmonBase}`);
 
     for (const entry of entries) {
-        console.log(entry.name);
         //if (!entry.isDirectory()) continue;
         const nameFile = path.join(hwmonBase, entry.name, 'name');
-        console.log(entries);
         if (fs.existsSync(nameFile)) {
             const content = fs.readFileSync(nameFile, 'utf8').trim();
             if (content.includes(name1) || (name2 && content.includes(name2))) {
