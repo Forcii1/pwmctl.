@@ -15,7 +15,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         const hwmonPath = await window.electronAPI.searchPath(name1, name2);
         if (hwmonPath === "NONE") {
             container.textContent = `Kein HWMon-Gerät für ${displayName} gefunden!`;
-            return;
+            //return;
         }
 
         let gpuFanFile = null;
@@ -87,7 +87,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             inputContainer.style.marginTop = '10px';
 
             const pwmLabel = document.createElement('label');
-            pwmLabel.textContent = 'Control ';
+            pwmLabel.textContent = 'man. Control';
             const pwmCheckbox = document.createElement('input');
             pwmCheckbox.type = 'checkbox';
             pwmCheckbox.checked = savedData?.enabled || false;
@@ -120,15 +120,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             });
 
             applyBtn.addEventListener('click', async () => {
-                if (!pwmCheckbox.checked) return;
-                try {
-                    if (isNvidia) await window.electronAPI.setNvidiaFan(Number(pwmInput.value));
-                    else await window.electronAPI.setFanPWM(fanFile, Number(pwmInput.value));
-                    applyBtn.style.backgroundColor = '#4caf50';
-                } catch {
-                    applyBtn.style.backgroundColor = '#f44336';
-                }
-                setTimeout(() => applyBtn.style.backgroundColor = '', 300);
+                saveData();
             });
 
             [pwmLabel,pwmCheckbox,pwmvalLabel, pwmInput, pwmValueLabel, applyBtn].forEach(el => inputContainer.appendChild(el));
@@ -565,10 +557,12 @@ function collectAllData() {
     fanContainers.forEach((fanContainer, idx) => {
         const nameInput = fanContainer.querySelector('.fan-name-input');
         const fanName = nameInput?.value || `Fan${idx}`;
+        const pwmInput= fanContainer.querySelector('input[type="range"]');
+        const val = parseInt(pwmInput.value, 10);
         const pwmCheckbox = fanContainer.querySelector('input[type="checkbox"]');
         const enabled = pwmCheckbox?.checked ?? false;
         const isGpu = fanContainer.querySelector('.fan-name-span')?.textContent.includes('GPU');
-        const fanData = { Name: fanName, enabled };
+        const fanData = { Name: fanName, enabled,Value: val };
         if (isGpu) data.GPUS.GPU = fanData;
         else data.Fans[idx] = fanData;
     });
