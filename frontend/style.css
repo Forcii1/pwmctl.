@@ -146,7 +146,7 @@ input[type="range"] {
 }
 
 /*  (Fan Header)          ========== myCurveSelect ==================== */
-#myCurveSelect {
+.myCurveSelect {
     width: 100%;
     padding: 6px 8px;
     font-size: 0.9rem;
@@ -160,26 +160,26 @@ input[type="range"] {
 }
 
 /* Hover-Effekt */
-#myCurveSelect:hover {
+.myCurveSelect:hover {
     border-color: var(--primary-color);
     background-color: rgba(0,188,212,0.1);
 }
 
 /* Fokus-Effekt */
-#myCurveSelect:focus {
+.myCurveSelect:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 4px var(--primary-color);
 }
 
 /* Option Styling */
-#myCurveSelect option {
+.myCurveSelect option {
     background-color: rgba(30,30,47,1); /* dunkler Hintergrund für Optionen */
     color: #fff;                         /* weiße Schrift für Optionen */
 }
 
 /* Optional: dunkles Theme beim Focus */
-#myCurveSelect:focus option {
+.myCurveSelect:focus option {
     background-color: rgba(30,30,47,1);
     color: #fff;
 }

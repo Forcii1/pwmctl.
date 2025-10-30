@@ -9,7 +9,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#include "nvml.h"
+#include <nvidia/nvml.h>
 #include "json.hpp"
 
 using json = nlohmann::json;

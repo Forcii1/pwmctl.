@@ -81,6 +81,8 @@ ipcMain.handle('saveAllData', (event, data) => {
 });
 
 ipcMain.handle('loadAllData', () => {
+    try{
     if (!fs.existsSync(configPath)) return null;
     return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    }catch{}
 });

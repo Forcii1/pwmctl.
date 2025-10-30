@@ -23,7 +23,7 @@ int main (){
     const std::filesystem::path AMDpath = searchpath("amdgpu");
     const std::filesystem::path AMDtemppath = AMDpath.string()+"temp1_input";
     const std::filesystem::path AMDfanpath = AMDpath.string()+"pwm1";
-    const std::filesystem::path CONFIGpath ="/home/hannes/programming/pwmfix/settings.json";
+    const std::filesystem::path CONFIGpath ="/home/hannes/programming/pwmfix/frontend/curves.json";
     const std::filesystem::path fanpath=searchpath("it86","it87");
     //When fanpth is NONE -> no driver found, try to install
     if(!fanpath.compare("NONE")){
@@ -43,7 +43,7 @@ int main (){
     while (true) {
         //reload config if changes are made
         json j=loadconf(CONFIGpath);
-        auto& fans = j["Fans"];
+        auto& fans = j["Curves"];
         std::size_t fanCount = fans.size();
         auto& gpus = j["GPUS"];
 
