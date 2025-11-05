@@ -490,8 +490,13 @@ function createCurveElement(fromdata,name, id = null, points = [{ x: 0, y: 0 }])
         title.textContent = titleInput.value || title.textContent;
         title.style.display = 'inline';
         titleInput.style.display = 'none';
-    });
 
+        //deleteSelect(curveContainer);
+        //updateCurveSelect(curveContainer);
+
+        updatename(curveContainer,titleInput.value || title.textContent);
+    });
+    
     leftGroup.appendChild(title);
     leftGroup.appendChild(titleInput);
 
@@ -589,7 +594,7 @@ function collectAllData() {
 
 
         const fanData = { name: fanName, enabled, value: val, curve: curveinput.value};
-        if (isGpu) data.GPUS.GPU = fanData;
+        if (isGpu) data.GPUS[0] = fanData;
         else data.Fans[idx] = fanData;
     });
 
@@ -662,4 +667,25 @@ function deleteSelect(curve) {
       }
     }
   });
+}
+
+function updatename(curve,newname){
+    const curveselects = document.querySelectorAll('.myCurveSelect');
+    curveselects.forEach(curveselect => {
+        // Get the title text and id from the curve element
+        const title = curve.querySelector('.curve-title');
+        const id = curve.dataset.id;
+
+        if (!title || !id) return; // skip if missing
+
+        // Loop through options and remove the one that matches the id or text
+        for (let i = 0; i < curveselect.options.length; i++) {
+            const opt = curveselect.options[i];
+            if (opt.value === id || opt.text === title.textContent) {
+                opt.text =newname;
+                break;
+            }
+        }
+    });
+
 }
