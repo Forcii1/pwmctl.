@@ -194,3 +194,40 @@ bool send_pwm_command(const std::string& path, int value) {
     close(sock);
     return true;
 }
+
+int setpwm(nlohmann::json& type,nlohmann::json& curves, std::string num,std::string path, int gpu,int GPUTEMP, int CPUTEMP){
+    int pwm =0;
+    std::string curve= type[num]["curve"];
+
+    if(type[num]["enabled"]){
+        pwm=type[num]["value"];
+    }else if(!type[num]["enabled"] && stoi(curve)>0){
+        std::vector<int> temps_vec = curves[curve]["temps"].get<std::vector<int>>();
+        std::vector<int> pwms_vec  = curves[curve]["pwms"].get<std::vector<int>>();
+        int* temps = temps_vec.data();
+        int* pwms = pwms_vec.data();
+        switch (int(curves[curve]["source"])) {
+            case 0:
+                pwm = calcpwm(temps, pwms, CPUTEMP, temps_vec.size());
+                break;
+            case 1:
+                pwm = calcpwm(temps, pwms, GPUTEMP, temps_vec.size());
+                break;
+            case 2:
+                pwm = calcpwm(temps, pwms, CPUTEMP>GPUTEMP ? CPUTEMP : GPUTEMP, temps_vec.size());
+                break;
+        }
+    }
+    if(gpu==1){
+        setnvtemp(pwm);
+        return 0;
+    }else if(gpu==2){
+        std::cout<<path + (std::string)type[num]["Name"]<<std::endl<<pwm<<std::endl;
+        writefile(path,pwm); //soll bei nicht gpus: path.string()+"_pwm"+std::to_string(num). 
+        return 0;
+    }
+    //std::cout<<path.string() + (std::string)type[num]["Name"]<<std::endl<<pwm<<std::endl;
+    std::cout<<path+"pwm"+(num)<<std::endl<<pwm<<std::endl;
+    writefile(path+"pwm"+(num),pwm); //soll bei nicht gpus: path.string()+"_pwm"+std::to_string(num). 
+    return 0;
+}

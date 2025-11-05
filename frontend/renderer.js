@@ -30,9 +30,9 @@ window.addEventListener('DOMContentLoaded', async () => {
 
         const count = await window.electronAPI.getFanCount(hwmonPath);
 
-        for (let i = 0; i < count; i++) {
+        for (let i = 1; i <= count; i++) {
             const fanData = savedData?.Fans?.[i] || null;
-            createFanUI(container, `Fan ${i + 1}`, `${hwmonPath}/fan${i + 1}_input`, true, false, fanData);
+            createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, true, false, fanData);
         }
 
         const gpuFanData = savedData?.GPUS?.GPU || null;
@@ -595,7 +595,7 @@ function collectAllData() {
 
         const fanData = { name: fanName, enabled, value: val, curve: curveinput.value};
         if (isGpu) data.GPUS[0] = fanData;
-        else data.Fans[idx] = fanData;
+        else data.Fans[idx+1] = fanData;
     });
 
     // --- Curves ---
