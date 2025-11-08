@@ -219,7 +219,7 @@ int setpwm(nlohmann::json& type,nlohmann::json& curves, std::string num,std::str
         }
     }
     if(gpu==1){
-        setnvtemp(pwm);
+        setnvtemp(int(pwm/2.55));
         return 0;
     }else if(gpu==2){
         std::cout<<path + (std::string)type[num]["Name"]<<std::endl<<pwm<<std::endl;
