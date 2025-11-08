@@ -2,8 +2,9 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
+const os = require("os");
 
-const configPath = path.join(__dirname, 'curves.json');
+const configPath = path.join(os.homedir(), ".config", "pwmctl.conf");
 
 
 function createWindow() {

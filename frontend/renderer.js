@@ -35,7 +35,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, true, false, fanData);
         }
 
-        const gpuFanData = savedData?.GPUS?.GPU || null;
+        const gpuFanData = savedData?.Gpus?.[0]|| null;
+
         createFanUI(container, "GPU Fan", gpuFanFile, true, isNvidia, gpuFanData);
     }
 
@@ -577,7 +578,7 @@ applyBtnCurve.addEventListener('click', saveData);
 
 // ==================== STORAGE ====================
 function collectAllData() {
-    const data = { Fans: {}, GPUS: {}, Curves: {} };
+    const data = { Fans: {}, Gpus: {}, Curves: {} };
 
     // --- Fans ---
     const fanContainers = document.querySelectorAll('#buttonsContainer .container');
@@ -594,7 +595,7 @@ function collectAllData() {
 
 
         const fanData = { name: fanName, enabled, value: val, curve: curveinput.value};
-        if (isGpu) data.GPUS[0] = fanData;
+        if (isGpu) data.Gpus[0] = fanData;
         else data.Fans[idx+1] = fanData;
     });
 
