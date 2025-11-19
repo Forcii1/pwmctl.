@@ -1,0 +1,13 @@
+[Unit]
+Description=PWM Control Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/pwmctld
+Restart=always
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
