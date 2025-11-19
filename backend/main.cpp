@@ -34,7 +34,7 @@ int main (){
     }
 
     //init fans -> Control to manual
-    //writeall(1,fanpath);
+    writeall(1,fanpath);
 
     if(searchpath("amdgpu")=="NONE"){
         nvi=1;
@@ -48,7 +48,8 @@ int main (){
         auto& fans = j["Fans"];
         auto& curves = j["Curves"];
         std::size_t fanCount = fans.size();
-        auto& gpus = j["GPUS"];
+        auto& gpus = j["Gpus"];
+        //std::cout<<gpus<<std::endl;
 
         system("clear");
         if(nvi){
@@ -60,42 +61,8 @@ int main (){
 
         for (unsigned int i=1;i <=fanCount;i++) {
             setpwm(fans,curves,std::to_string(i),fanpath,0,GPUTEMP,CPUTEMP);
-            /*int pwm =0;
-            int curve= fans[std::to_string(i)][curve];
-
-            if(fans[std::to_string(i)][enabled]){
-                pwm=fans[std::to_string(i)][value];
-            }else if(!fans[std::to_string(i)][enabled] && curve>0){
-                std::vector<int> temps_vec = curves[curve]["temps"].get<std::vector<int>>();
-                std::vector<int> pwms_vec  = curves[curve]["pwms"].get<std::vector<int>>();
-                int* temps = temps_vec.data();
-                int* pwms = pwms_vec.data();
-                switch (curves[curve]["source"]) {
-                    case 0:
-                        pwm = calcpwm(temps, pwms, CPUTEMP, temps_vec.size());
-                        break;
-                    case 1:
-                        pwm = calcpwm(temps, pwms, GPUTEMP, temps_vec.size());
-                        break;
-                    case 2:
-                        pwm = calcpwm(temps, pwms, CPUTEMP>GPUTEMP ? CPUTEMP : GPUTEMP, temps_vec.size());
-                        break;
-                }
-            }
-    
-            std::cout<<fanpath.string() + (std::string)fans[std::to_string(i)]["Name"]<<std::endl<<pwm<<std::endl;
-            writefile(fanpath.string() + (std::string)fans[std::to_string(i)]["Name"],pwm);*/
         }
-        /*std::vector<int> temps_vec = gpus["GPU"]["temps"].get<std::vector<int>>();
-        std::vector<int> pwms_vec  = gpus["GPU"]["pwms"].get<std::vector<int>>();
-        int* temps = temps_vec.data();
-        int* pwms = pwms_vec.data();
-        if(nvi){
-            setnvtemp(calcpwm(temps, pwms, GPUTEMP, temps_vec.size()));
-        }else{
-            int pwm = calcpwm(temps, pwms, GPUTEMP, temps_vec.size());
-            writefile(AMDfanpath,pwm);
-        }*/
+    
         setpwm(gpus,curves,std::to_string(0),AMDfanpath,(nvi?1:2),GPUTEMP,CPUTEMP);
         std::this_thread::sleep_for(std::chrono::seconds(3));
 
