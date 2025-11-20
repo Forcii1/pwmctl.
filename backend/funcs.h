@@ -155,7 +155,7 @@ bool send_pwm_command(const std::string& path, int value) {
     std::string cmd;
 
     if (path == "NVIDIA") {
-        std::cout<<path<<std::endl;
+    //    std::cout<<path<<std::endl;
         // NVIDIA-FAN
         if (value < 30 || value > 100) {
             std::cerr << "Ungültiger NVIDIA-FAN-Wert: " << value << "\n";
@@ -235,6 +235,7 @@ int setpwm(nlohmann::json& type,nlohmann::json& curves, std::string num,std::str
                 pwm = calcpwm(temps, pwms, CPUTEMP, temps_vec.size());
                 break;
             case 1:
+                //std::cout<<CPUTEMP<<std::endl;
                 pwm = calcpwm(temps, pwms, GPUTEMP, temps_vec.size());
                 break;
             case 2:
@@ -247,13 +248,13 @@ int setpwm(nlohmann::json& type,nlohmann::json& curves, std::string num,std::str
         //send_pwm_command("NVIDIA", int(pwm/2.55));
         return 0;
     }else if(gpu==2){
-        std::cout<<path + (std::string)type[num]["Name"]<<std::endl<<pwm<<std::endl;
+        //std::cout<<path + (std::string)type[num]["Name"]<<std::endl<<pwm<<std::endl;
         //writefile(path,pwm); //soll bei nicht gpus: path.string()+"_pwm"+std::to_string(num). 
         send_pwm_command(path, pwm);
         return 0;
     }
     //std::cout<<path.string() + (std::string)type[num]["Name"]<<std::endl<<pwm<<std::endl;
-    std::cout<<path+"pwm"+(num)<<std::endl<<pwm<<std::endl;
+    //std::cout<<path+"pwm"+(num)<<std::endl<<pwm<<std::endl;
     //writefile(path+"pwm"+(num),pwm); //soll bei nicht gpus: path.string()+"_pwm"+std::to_string(num). 
     send_pwm_command(path+"pwm"+(num), pwm);
     return 0;

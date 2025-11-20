@@ -92,12 +92,12 @@ int main() {
                 continue;
             }
 
-            std::string nvcmd =
-                "nvidia-settings --display=:1 -a \"[fan]/GPUTargetFanSpeed=" +
-                std::to_string(speed) + "\"";
+        std::string nvcmd =
+            "nvidia-settings --display=:1 -a \"[fan]/GPUTargetFanSpeed=" +
+            std::to_string(speed) + "\" > /dev/null 2>&1";
 
             system(nvcmd.c_str());
-            std::cout << "NVIDIA Fan → " << speed << "%\n";
+            //std::cout << "NVIDIA Fan → " << speed << "%\n";
 
             close(client);
             continue;
@@ -106,10 +106,10 @@ int main() {
             std::string value = cmd.substr(12);
             std::string nvcmd =
                 "nvidia-settings --display=:1 -a \"[gpu]/GPUFanControlState=" +
-                value+ "\"";
+                value+ "\" > /dev/null 2>&1";
 
             system(nvcmd.c_str());
-            std::cout << "NVIDIA State → " << value << "%\n";
+            //std::cout << "NVIDIA State → " << value << "%\n";
 
             close(client);
             continue;
@@ -147,7 +147,7 @@ int main() {
             std::cerr << "Fehler beim Schreiben in " << path << "\n";
         } else {
             file << value;
-            std::cout << "Set " << path << " to " << value << "\n";
+            //std::cout << "Set " << path << " to " << value << "\n";
         }
 
         close(client);
