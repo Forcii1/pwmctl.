@@ -27,21 +27,30 @@ int main (){
     const std::filesystem::path CONFIGpath =std::filesystem::path(std::getenv("HOME")) / ".config" / "pwmctl.conf";
 
     const std::filesystem::path fanpath=searchpath("it86","it87");
+    
     //When fanpth is NONE -> no driver found, try to install
-    if(!fanpath.compare("NONE")){
+    /*if(!fanpath.compare("NONE")){
         install_driver();
         return 0;
-    }
+    }*/
 
     //init fans -> Control to manual
     writeall(1,fanpath);
-
-    if(searchpath("amdgpu")=="NONE"){
+    if(AMDpath.string()=="NONE"){
         nvi=1;
         //init nvidia driver
-        device=nvmlinit();
+        while (1) {
+            device = nvmlinit();
+            if (device) break;
+            std::cerr << "NVML not ready, retrying..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+        }
+        if (!device) {
+            std::cerr << "NVML failed to initialize after retries!" << std::endl;
+            return 1;
+        }
     }
-
+    
     while (true) {
         //reload config if changes are made
         json j=loadconf(CONFIGpath);
@@ -49,9 +58,10 @@ int main (){
         auto& curves = j["Curves"];
         std::size_t fanCount = fans.size();
         auto& gpus = j["Gpus"];
+        
         //std::cout<<gpus<<std::endl;
 
-        system("clear");
+        //system("clear");
         if(nvi){
             GPUTEMP=nvitemp(device);
         }else {
@@ -59,10 +69,12 @@ int main (){
         }
         CPUTEMP=readfile(CPUtemppath)/1000;
 
+
+
         for (unsigned int i=1;i <=fanCount;i++) {
             setpwm(fans,curves,std::to_string(i),fanpath,0,GPUTEMP,CPUTEMP);
         }
-    
+
         setpwm(gpus,curves,std::to_string(0),AMDfanpath,(nvi?1:2),GPUTEMP,CPUTEMP);
         std::this_thread::sleep_for(std::chrono::seconds(3));
 
