@@ -49,6 +49,7 @@ int main (){
             std::cerr << "NVML failed to initialize after retries!" << std::endl;
             return 1;
         }
+        std::cerr<<"NVML connected!\n";
     }
     
     while (true) {
