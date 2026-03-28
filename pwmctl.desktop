@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=pwmctl.
+Exec=/usr/local/bin/pwmctl
+Icon=pwmctl
+Terminal=false
+Type=Application
+Categories=Utility; 

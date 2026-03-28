@@ -1,30 +1,78 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 const os = require("os");
-
 const configPath = path.join(os.homedir(), ".config", "pwmctl.conf");
 
+let tray = null;
+let backendProcess = null;
 
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+    app.quit();
+} else {
+    app.on('second-instance', () => {
+        const win = BrowserWindow.getAllWindows()[0];
+        if (win) {
+            win.show();
+            win.focus();
+        }
+    });
+}
+app.setName('pwmctl');
 function createWindow() {
     const win = new BrowserWindow({
         width: 1200,
         height: 800,
         autoHideMenuBar: true,
+        icon: path.join(__dirname, 'assets/icon.png'),
+        show: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
             contextIsolation: true,
-            sandbox: false
+            sandbox: false,
         },
     });
 
     win.loadFile('index.html');
-    // win.webContents.openDevTools(); // Optional
+
+    const startHidden = process.argv.includes('--hidden');
+
+    win.once('ready-to-show', () => {
+        if (startHidden) {
+            win.hide();
+        } else {
+            win.show();
+        }
+    });
+
+    win.on('close', (event) => {
+        event.preventDefault();
+        win.hide();
+    });
+
+    tray = new Tray(path.join(__dirname, 'assets/icon.png'));
+    tray.setToolTip('pwmctl.');
+    tray.on('click', () => {
+        win.isVisible() ? win.hide() : win.show();
+    });
+    tray.setContextMenu(Menu.buildFromTemplate([
+        { label: 'Öffnen', click: () => win.show() },
+        { label: 'Beenden', click: () => {
+            win.removeAllListeners('close');
+            app.quit();
+        }},
+    ]));
 }
 
 app.whenReady().then(() => {
+    backendProcess = spawn('pwmctl-backend', [], { detached: false });
+    backendProcess.on('error', (err) => {
+        console.error('[Main] pwmctl-backend konnte nicht gestartet werden:', err);
+    });
+
     createWindow();
 
     app.on('activate', () => {
@@ -32,8 +80,11 @@ app.whenReady().then(() => {
     });
 });
 
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+app.on('before-quit', () => {
+    if (backendProcess) {
+        backendProcess.kill();
+        backendProcess = null;
+    }
 });
 
 // --- IPC: HWMon Fan Count ---
@@ -72,8 +123,6 @@ function getNvidiaFan() {
 }
 ipcMain.handle('get-nvidia-fan', () => getNvidiaFan());
 
-
-
 // Speichern
 ipcMain.handle('saveAllData', (event, data) => {
     if (!data) return console.error("❌ saveAllData: no data received!");
@@ -82,8 +131,8 @@ ipcMain.handle('saveAllData', (event, data) => {
 });
 
 ipcMain.handle('loadAllData', () => {
-    try{
-    if (!fs.existsSync(configPath)) return null;
-    return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    }catch{}
+    try {
+        if (!fs.existsSync(configPath)) return null;
+        return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    } catch {}
 });
