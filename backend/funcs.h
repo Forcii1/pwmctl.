@@ -2,6 +2,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <string>
 #include <thread>
 #include <iostream>
 
@@ -15,6 +16,7 @@
 using json = nlohmann::json;
 #define SOCKET_PATH "/var/run/pwmctld.sock"
 
+int sock=0;
 
 int install_driver(){
     //system("cd /home/hannes/extra/it87 && git pull && make && sudo make install &&  cd /lib/modules/$(uname -r)/kernel/drivers/hwmon && sudo cp it87.ko it87.ko.zst");
@@ -133,8 +135,8 @@ int getfans(const std::string PATH){
     }
 }
 
-bool send_pwm_command(const std::string& path, int value) {
-    int sock = socket(AF_UNIX, SOCK_STREAM, 0);
+bool initsock(){
+    sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock < 0) {
         perror("socket");
         return false;
@@ -143,15 +145,23 @@ bool send_pwm_command(const std::string& path, int value) {
     sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path) - 1);
-    addr.sun_path[sizeof(addr.sun_path) - 1] = '\0'; // Sicherheit
+    addr.sun_path[sizeof(addr.sun_path) - 1] = '\0'; 
 
     if (connect(sock, (sockaddr*)&addr, sizeof(addr)) == -1) {
         perror("connect");
         close(sock);
         return false;
     }
+    return true;
+}
 
-    
+bool closesock(){
+    close(sock);
+    return true;
+}
+
+bool send_pwm_command(const std::string& path, int value) {
+
     std::string cmd;
 
     if (path == "NVIDIA") {
@@ -159,7 +169,6 @@ bool send_pwm_command(const std::string& path, int value) {
         // NVIDIA-FAN
         if (value < 30 || value > 100) {
             std::cerr << "Ungültiger NVIDIA-FAN-Wert: " << value << "\n";
-            close(sock);
             return false;
         }
         cmd = "NVIDIA FAN " + std::to_string(value);
@@ -170,7 +179,7 @@ bool send_pwm_command(const std::string& path, int value) {
         // Mainboard-PWM
         cmd = "SET " + path + " " + std::to_string(value);
     }
-
+    cmd += "\n";
     ssize_t total_sent = 0;
     ssize_t len = cmd.size();
     const char* data = cmd.c_str();
@@ -179,41 +188,28 @@ bool send_pwm_command(const std::string& path, int value) {
         ssize_t n = write(sock, data + total_sent, len - total_sent);
         if (n <= 0) {
             perror("write");
-            close(sock);
             return false;
         }
         total_sent += n;
     }
-
-    close(sock);
     return true;
 }
 
 int setnvtemp(int pwm){
-    //MAX 62
     static int lastpwm=1;
     if(lastpwm<=30 && pwm<=30){
-        //send_pwm_command("NVIDIASTATE",0);
-        //could be maybe
         return 0;
     }
-    if(pwm<30&&lastpwm>=30){
-        //system("sudo -E nvidia-settings -a '[gpu:0]/GPUFanControlState=0'");
-        //system("nvidia-settings --display=:1 -a '[gpu:0]/GPUFanControlState=0'");
+    else if(pwm<30&&lastpwm>=30){
         send_pwm_command("NVIDIASTATE",0);
         lastpwm=pwm;
         return 0;
     }
-    if(lastpwm<30&&pwm>=30){
-        //std::cout<<lastpwm<<std::endl;
-        //system("nvidia-settings --display=:1 -a '[gpu:0]/GPUFanControlState=1'");
+    else if(lastpwm<30&&pwm>=30){
         send_pwm_command("NVIDIASTATE",1);
         lastpwm=pwm;
         return 0;
     }
-
-    //system(("nvidia-settings --display=:1 -a '[fan:0]/GPUTargetFanSpeed="+std::to_string(((pwm>=45)?45:31))+"' 2>/dev/null").c_str());
-    //system(("nvidia-settings --display=:1 -a '[fan]/GPUTargetFanSpeed="+std::to_string(int((pwm)))+"' 2>/dev/null").c_str());
     send_pwm_command("NVIDIA", pwm);
     lastpwm=pwm;
 
@@ -248,23 +244,17 @@ int setpwm(nlohmann::json& type,nlohmann::json& curves, std::string num,std::str
         //send_pwm_command("NVIDIA", int(pwm/2.55));
         return 0;
     }else if(gpu==2){
-        //std::cout<<path + (std::string)type[num]["Name"]<<std::endl<<pwm<<std::endl;
-        //writefile(path,pwm); //soll bei nicht gpus: path.string()+"_pwm"+std::to_string(num). 
         send_pwm_command(path, pwm);
         return 0;
     }
-    //std::cout<<path.string() + (std::string)type[num]["Name"]<<std::endl<<pwm<<std::endl;
-    //std::cout<<path+"pwm"+(num)<<std::endl<<pwm<<std::endl;
-    //writefile(path+"pwm"+(num),pwm); //soll bei nicht gpus: path.string()+"_pwm"+std::to_string(num). 
     send_pwm_command(path+"pwm"+(num), pwm);
     return 0;
 }
-int writeall(int a, std::string path){
-    //writefile("/sys/class/hwmon/hwmon2/pwm1_enable", a);
-    //writefile(path+"pwm1_enable", a);
-    send_pwm_command(path+"pwm2_enable", a);
-    send_pwm_command(path+"pwm3_enable", a);
-    send_pwm_command(path+"pwm4_enable", a);
-
+int initfancontrol(int a, std::string path){
+    int i=2;
+    while(true){
+        if(!send_pwm_command(path+"pwm"+std::to_string(i)+"_enable", a)) break; 
+        i++;
+    }
     return 0;
 }

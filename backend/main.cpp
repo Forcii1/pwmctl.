@@ -1,9 +1,6 @@
 #include <chrono>
-#include <fstream>
 #include <string>
 #include <thread>
-
-
 #include "funcs.h"
 #include "json.hpp"
 #include "nvml.h"
@@ -34,8 +31,9 @@ int main (){
         return 0;
     }*/
 
-    //init fans -> Control to manual
-    writeall(1,fanpath);
+
+    initfancontrol(1,fanpath);
+
     if(AMDpath.string()=="NONE"){
         nvi=1;
         //init nvidia driver
@@ -59,10 +57,10 @@ int main (){
         auto& curves = j["Curves"];
         std::size_t fanCount = fans.size();
         auto& gpus = j["Gpus"];
-        
-        //std::cout<<gpus<<std::endl;
+        if(! initsock()){
+            continue;
+        }
 
-        //system("clear");
         if(nvi){
             GPUTEMP=nvitemp(device);
         }else {
@@ -77,8 +75,9 @@ int main (){
         }
 
         setpwm(gpus,curves,std::to_string(0),AMDfanpath,(nvi?1:2),GPUTEMP,CPUTEMP);
-        std::this_thread::sleep_for(std::chrono::seconds(3));
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
+        closesock();
     }
     return 0;
 }
