@@ -1,8 +1,4 @@
-PWM control plugin for it87 driver
+PWM control plugin for it87 driver, AMDGPU and NvidiaGPU
 
 **Install**
-make
-make install
-
-**TODO**
-Expand for hwmon driver
+sudo make install
