@@ -39,6 +39,8 @@ h1 {
   color: var(--primary-color);
   text-shadow: 0 2px 8px rgba(0,0,0,0.4);
   pointer-events: none; /* verhindert Klicks und Mausinteraktion */
+  border-bottom: 3px solid #333;
+  padding-bottom: 8px;
 }
 
 
@@ -388,3 +390,15 @@ body::-webkit-scrollbar {
   user-select: none; /* verhindert markieren */
   pointer-events: none; /* verhindert Klicks und Mausinteraktion */
 }
+
+#globalActionBar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  /*background: #1e1e1e;*/
+  z-index: 999;
+}
+#globalApplyBtn { background: #00bcd4; color: #000; padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; }
+#globalResetBtn { background: #444;    color: #fff; padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; }

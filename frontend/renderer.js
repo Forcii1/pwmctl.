@@ -1,202 +1,202 @@
 const curvesContainer = document.getElementById('curvesContainer');
 const addCurveBtn = document.getElementById('addCurveBtn');
-const applyBtnCurve = document.getElementById('applybtn');
 let curveIdCounter = 1;
 
 // ==================== FAN MANAGEMENT ====================
 window.addEventListener('DOMContentLoaded', async () => {
-    const container = document.getElementById('buttonsContainer');
-    if (!container) return console.error("buttonsContainer not found!");
-
-    // ---------------- Fans erstellen ----------------
-    async function createFanButtons(name1, name2, displayName, savedData = null) {
-        container.innerHTML = '';
-
-        const hwmonPath = await window.electronAPI.searchPath(name1, name2);
-        if (hwmonPath === "NONE") {
-            container.textContent = `Kein HWMon-Gerät für ${displayName} gefunden!`;
-            //return;
-        }
-
-        let gpuFanFile = null;
-        let isNvidia = false;
-        const gpupath = await window.electronAPI.searchPath("amdgpu");
-        if (gpupath !== "NONE") {
-            gpuFanFile = gpupath + "/fan1_target";
-        } else {
-            isNvidia = true;
-            gpuFanFile = "NVIDIA GPU";
-        }
-
-        const count = await window.electronAPI.getFanCount(hwmonPath);
-
-        for (let i = 1; i <= count; i++) {
-            const fanData = savedData?.Fans?.[i] || null;
-            createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, true, false, fanData);
-        }
-
-        const gpuFanData = savedData?.Gpus?.[0]|| null;
-
-        createFanUI(container, "GPU Fan", gpuFanFile, true, isNvidia, gpuFanData);
-    }
-
-    function createFanUI(container, fanName, fanFile, showPWM, isNvidia, savedData = null) {
-        const fanContainer = document.createElement('div');
-        fanContainer.classList.add('container');
-
-        const header = document.createElement('div');
-        header.classList.add('fan-header');
-
-        const nameSpan = document.createElement('span');
-        nameSpan.classList.add('fan-name-span');
-        nameSpan.textContent = savedData?.name || fanName;
-        nameSpan.style.cursor = 'pointer';
-
-        const nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.classList.add('fan-name-input');
-        nameInput.value = savedData?.name || fanName;
-        nameInput.style.display = 'none';
-
-        nameSpan.addEventListener('click', () => {
-            nameSpan.style.display = 'none';
-            nameInput.style.display = 'inline-block';
-            nameInput.focus();
-            nameInput.select();
-        });
-        nameInput.addEventListener('blur', () => {
-            nameSpan.textContent = nameInput.value.trim() || nameSpan.textContent;
-            nameSpan.style.display = 'inline';
-            nameInput.style.display = 'none';
-        });
-
-        const speedLabel = document.createElement('span');
-        speedLabel.classList.add('fan-rpm');
-        speedLabel.textContent = '--- ' + (isNvidia ? '%' : 'RPM');
-
-        header.append(nameSpan, nameInput, speedLabel);
-        fanContainer.appendChild(header);
-
-        if (showPWM) {
-            const content = document.createElement('div');
-            content.classList.add('content');
-
-            const inputContainer = document.createElement('div');
-            inputContainer.style.display = 'flex';
-            inputContainer.style.flexDirection = 'column';
-            inputContainer.style.gap = '6px';
-            inputContainer.style.marginTop = '10px';
-
-            const pwmLabel = document.createElement('label');
-            pwmLabel.textContent = 'man. Control';
-            const pwmCheckbox = document.createElement('input');
-            pwmCheckbox.type = 'checkbox';
-            pwmCheckbox.checked = savedData?.enabled || false;
-
-            const pwmvalLabel = document.createElement('label');
-            pwmvalLabel.textContent = 'PWM value ';
-            const pwmInput = document.createElement('input');
-            pwmInput.type = 'range';
-            pwmInput.min = '0';
-            pwmInput.max = '255';
-            pwmInput.value = savedData?.value || 0;
-            pwmInput.disabled = !pwmCheckbox.checked;
-            pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
-
-
-            const curveselect = document.createElement('select');
-            curveselect.className="myCurveSelect"
-            // 2. Alle Kurven-Container finden
-            const curves = document.querySelectorAll('.curve-container');
-            const option = new Option("None", -1);
-            curveselect.options.add(option);
-            
-            // 3. Optionen hinzufügen
-            curves.forEach(curve => {
-                const title = curve.querySelector('.curve-title');
-                const id = curve.dataset.id; // die ID aus data-id
-                if (title && id !== undefined) {
-                    const option = new Option(title.textContent, id); // Text = Name, Value = ID
-                    curveselect.options.add(option);
-                }
-            });
-            curveselect.value=savedData?.curve || -1;
-
-
-            const pwmValueLabel = document.createElement('span');
-            pwmValueLabel.textContent = pwmInput.value;
-
-            const applyBtn = document.createElement('button');
-            applyBtn.textContent = '✔';
-            applyBtn.style.width = '30px';
-            applyBtn.style.cursor = 'pointer';
-
-            pwmCheckbox.addEventListener('change', () => {
-                pwmInput.disabled = !pwmCheckbox.checked;
-                pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
-            });
-
-            pwmInput.addEventListener('input', () => {
-                if (pwmCheckbox.checked) pwmValueLabel.textContent = pwmInput.value;
-            });
-
-            applyBtn.addEventListener('click', async () => {
-                saveData();
-            });
-
-            [pwmLabel,pwmCheckbox,pwmvalLabel, pwmInput, pwmValueLabel,curveselect, applyBtn].forEach(el => inputContainer.appendChild(el));
-            content.appendChild(inputContainer);
-            fanContainer.appendChild(content);
-        }
-
-        container.appendChild(fanContainer);
-
-        async function updateSpeed() {
-            try {
-                const speed = isNvidia && fanFile === "NVIDIA GPU"
-                    ? await window.electronAPI.getNvidiaFan()
-                    : await window.electronAPI.getFanSpeed(fanFile);
-                speedLabel.textContent = speed + (isNvidia ? '%' : ' RPM');
-            } catch {
-                speedLabel.textContent = '--- ' + (isNvidia ? '%' : 'RPM');
-            }
-        }
-
-        updateSpeed();
-        setInterval(updateSpeed, 1000);
-    }
-    // ---------------- Alles laden ----------------
-
-    async function loadCurves(savedData) {
-        if (!savedData?.Curves) return;
-        Object.entries(savedData.Curves).forEach(([id, curve]) => {
-            const { Name, source, temps, pwms, fans } = curve;
-            const curveEl = createCurveElement(true,Name, id);
-            // Sensor
-            const sensorBtns = curveEl.querySelectorAll('.curve-sensor-btn');
-            sensorBtns.forEach((btn, idx) => {
-                btn.classList.toggle('selected', idx === source);
-            });
-            // Punkte
-            const miniCanvas = curveEl.querySelector('.curve-mini-canvas');
-            const points = temps.map((t, i) => ({ x: t, y: pwms[i] }));
-            miniCanvas.dataset.points = JSON.stringify(points);
-            drawMiniCurve(miniCanvas, points);
-            // Fans
-            if (fans) {
-                curveEl.querySelectorAll('.curve-fan-btn').forEach((btn, idx) => {
-                    if (fans.includes(idx)) btn.classList.add('selected');
-                });
-            }
-        });
-    }
-
     const savedData = await window.electronAPI.loadAllData();
     await loadCurves(savedData);
     //loadData();
     await createFanButtons("it87", "it86", "Fans", savedData);
     
 });
+// ---------------- Fans erstellen ----------------
+async function createFanButtons(name1, name2, displayName, savedData = null) {
+    const container = document.getElementById('buttonsContainer');
+    if (!container) return console.error("buttonsContainer not found!");
+
+
+    container.innerHTML = '';
+
+    const hwmonPath = await window.electronAPI.searchPath(name1, name2);
+    if (hwmonPath === "NONE") {
+        container.textContent = `Kein HWMon-Gerät für ${displayName} gefunden!`;
+        //return;
+    }
+
+    let gpuFanFile = null;
+    let isNvidia = false;
+    const gpupath = await window.electronAPI.searchPath("amdgpu");
+    if (gpupath !== "NONE") {
+        gpuFanFile = gpupath + "/fan1_target";
+    } else {
+        isNvidia = true;
+        gpuFanFile = "NVIDIA GPU";
+    }
+
+    const count = await window.electronAPI.getFanCount(hwmonPath);
+
+    for (let i = 1; i <= count; i++) {
+        const fanData = savedData?.Fans?.[i] || null;
+        createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, true, false, fanData);
+    }
+
+    const gpuFanData = savedData?.Gpus?.[0]|| null;
+
+    createFanUI(container, "GPU Fan", gpuFanFile, true, isNvidia, gpuFanData);
+}
+
+//LOADING
+function createFanUI(container, fanName, fanFile, showPWM, isNvidia, savedData = null) {
+    const fanContainer = document.createElement('div');
+    fanContainer.classList.add('container');
+
+    const header = document.createElement('div');
+    header.classList.add('fan-header');
+
+    const nameSpan = document.createElement('span');
+    nameSpan.classList.add('fan-name-span');
+    nameSpan.textContent = savedData?.name || fanName;
+    nameSpan.style.cursor = 'pointer';
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.classList.add('fan-name-input');
+    nameInput.value = savedData?.name || fanName;
+    nameInput.style.display = 'none';
+
+    nameSpan.addEventListener('click', () => {
+        nameSpan.style.display = 'none';
+        nameInput.style.display = 'inline-block';
+        nameInput.focus();
+        nameInput.select();
+    });
+    nameInput.addEventListener('blur', () => {
+        nameSpan.textContent = nameInput.value.trim() || nameSpan.textContent;
+        nameSpan.style.display = 'inline';
+        nameInput.style.display = 'none';
+    });
+
+    const speedLabel = document.createElement('span');
+    speedLabel.classList.add('fan-rpm');
+    speedLabel.textContent = '--- ' + (isNvidia ? '%' : 'RPM');
+
+    header.append(nameSpan, nameInput, speedLabel);
+    fanContainer.appendChild(header);
+
+    if (showPWM) {
+        const content = document.createElement('div');
+        content.classList.add('content');
+
+        const inputContainer = document.createElement('div');
+        inputContainer.style.display = 'flex';
+        inputContainer.style.flexDirection = 'column';
+        inputContainer.style.gap = '6px';
+        inputContainer.style.marginTop = '10px';
+
+        const pwmLabel = document.createElement('label');
+        pwmLabel.textContent = 'man. Control';
+        const pwmCheckbox = document.createElement('input');
+        pwmCheckbox.type = 'checkbox';
+        pwmCheckbox.checked = savedData?.enabled || false;
+
+        const pwmvalLabel = document.createElement('label');
+        pwmvalLabel.textContent = 'PWM value ';
+        const pwmInput = document.createElement('input');
+        pwmInput.type = 'range';
+        pwmInput.min = '0';
+        pwmInput.max = '255';
+        pwmInput.value = savedData?.value || 0;
+        pwmInput.disabled = !pwmCheckbox.checked;
+        pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
+
+
+        const curveselect = document.createElement('select');
+        curveselect.className="myCurveSelect"
+        // 2. Alle Kurven-Container finden
+        const curves = document.querySelectorAll('.curve-container');
+        const option = new Option("None", -1);
+        curveselect.options.add(option);
+        
+        // 3. Optionen hinzufügen
+        curves.forEach(curve => {
+            const title = curve.querySelector('.curve-title');
+            const id = curve.dataset.id; // die ID aus data-id
+            if (title && id !== undefined) {
+                const option = new Option(title.textContent, id); // Text = Name, Value = ID
+                curveselect.options.add(option);
+            }
+        });
+        curveselect.value=savedData?.curve || -1;
+
+
+        const pwmValueLabel = document.createElement('span');
+        pwmValueLabel.textContent = pwmInput.value;
+
+        /*const applyBtn = document.createElement('button');
+        applyBtn.textContent = '✔';
+        applyBtn.style.width = '30px';
+        applyBtn.style.cursor = 'pointer';*/
+
+        pwmCheckbox.addEventListener('change', () => {
+            pwmInput.disabled = !pwmCheckbox.checked;
+            pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
+        });
+
+        pwmInput.addEventListener('input', () => {
+            if (pwmCheckbox.checked) pwmValueLabel.textContent = pwmInput.value;
+        });
+
+        /*applyBtn.addEventListener('click', async () => {
+            saveData();
+        });*/
+
+        [pwmLabel,pwmCheckbox,pwmvalLabel, pwmInput, pwmValueLabel,curveselect].forEach(el => inputContainer.appendChild(el));
+        content.appendChild(inputContainer);
+        fanContainer.appendChild(content);
+    }
+
+    container.appendChild(fanContainer);
+
+    async function updateSpeed() {
+        try {
+            const speed = isNvidia && fanFile === "NVIDIA GPU"
+                ? await window.electronAPI.getNvidiaFan()
+                : await window.electronAPI.getFanSpeed(fanFile);
+            speedLabel.textContent = speed + (isNvidia ? '%' : ' RPM');
+        } catch {
+            speedLabel.textContent = '--- ' + (isNvidia ? '%' : 'RPM');
+        }
+    }
+
+    updateSpeed();
+    setInterval(updateSpeed, 1000);
+}
+// ---------------- Alles laden ----------------
+
+async function loadCurves(savedData) {
+    if (!savedData?.Curves) return;
+    Object.entries(savedData.Curves).forEach(([id, curve]) => {
+        const { Name, source, temps, pwms, fans } = curve;
+        const curveEl = createCurveElement(true,Name, id);
+        // Sensor
+        const sensorBtns = curveEl.querySelectorAll('.curve-sensor-btn');
+        sensorBtns.forEach((btn, idx) => {
+            btn.classList.toggle('selected', idx === source);
+        });
+        // Punkte
+        const miniCanvas = curveEl.querySelector('.curve-mini-canvas');
+        const points = temps.map((t, i) => ({ x: t, y: pwms[i] }));
+        miniCanvas.dataset.points = JSON.stringify(points);
+        drawMiniCurve(miniCanvas, points);
+        // Fans
+        if (fans) {
+            curveEl.querySelectorAll('.curve-fan-btn').forEach((btn, idx) => {
+                if (fans.includes(idx)) btn.classList.add('selected');
+            });
+        }
+    });
+}
 
 
 // ==================== CURVE MANAGEMENT ====================
@@ -524,15 +524,35 @@ function createCurveElement(fromdata,name, id = null, points = [{ x: 0, y: 0 }])
     actionBtnContainer.style.marginTop = '4px';
 
     const editBtn = document.createElement('button');
-    editBtn.textContent = '✎'; editBtn.className = 'curve-action-btn';
+    editBtn.textContent = '✎'; 
+    editBtn.className = 'curve-action-btn';
+
     const deleteBtn = document.createElement('button');
-    deleteBtn.textContent = '🗑'; deleteBtn.className = 'curve-action-btn';
+    deleteBtn.textContent = '🗑'; 
+    deleteBtn.className = 'curve-action-btn';
     deleteBtn.addEventListener('click', () => {
         curvesContainer.removeChild(curveContainer);
         deleteSelect(curveContainer);
-
     });
-    actionBtnContainer.appendChild(editBtn); actionBtnContainer.appendChild(deleteBtn);
+
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = '❐'; 
+    copyBtn.className = 'curve-action-btn';
+    copyBtn.addEventListener('click', () => {
+        const miniCanvas = curveContainer.querySelector('.curve-mini-canvas');
+        let points = [];
+        try { points = JSON.parse(miniCanvas.dataset.points); } catch { points = [{ x: 0, y: 0 }]; }
+
+        const name = "Copy of "+curveContainer.querySelector('.curve-title')?.textContent ?? 'Curve';
+        const newCurve = createCurveElement(false, name, null, JSON.parse(JSON.stringify(points)));
+        updateCurveSelect(newCurve);
+    });
+
+
+
+    actionBtnContainer.appendChild(editBtn); 
+    actionBtnContainer.appendChild(copyBtn);
+    actionBtnContainer.appendChild(deleteBtn);
     rightGroup.appendChild(actionBtnContainer);
 
     header.appendChild(leftGroup);
@@ -573,8 +593,6 @@ addCurveBtn.addEventListener('click', () => {
     curve=createCurveElement(false,`Curve`);
     updateCurveSelect(curve);
 });
-
-applyBtnCurve.addEventListener('click', saveData);
 
 // ==================== STORAGE ====================
 function collectAllData() {
@@ -690,3 +708,14 @@ function updatename(curve,newname){
     });
 
 }
+
+// ==================== GLOBAL ACTION BAR ====================
+document.getElementById('globalApplyBtn').addEventListener('click', saveData);
+
+document.getElementById('globalResetBtn').addEventListener('click', async () => {
+    document.getElementById('curvesContainer').innerHTML = '';
+    document.getElementById('buttonsContainer').innerHTML = '';
+    const savedData = await window.electronAPI.loadAllData();
+    await loadCurves(savedData);
+    await createFanButtons("it87", "it86", "Fans", savedData);
+});
