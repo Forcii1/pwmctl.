@@ -7,22 +7,22 @@ int main(){
 
     result = nvmlInit();
     if (NVML_SUCCESS != result) {
-        return 1; // Fehler
+        return 1; 
     }
 
     result = nvmlDeviceGetHandleByIndex(0, &device);
     if (NVML_SUCCESS != result) {
         nvmlShutdown();
-        return 1; // Fehler
+        return 1; 
     }
 
     unsigned int fan = 0;
     if (nvmlDeviceGetFanSpeed(device, &fan) == NVML_SUCCESS){
-        std::cout << fan << std::endl; // Hier gibst du den Prozentwert aus
+        std::cout << fan << std::endl; // in %
     } else {
-        std::cout << 0 << std::endl; // Default, falls Abfrage fehlschlägt
+        std::cout << 0 << std::endl; // fallback
     }
 
     nvmlShutdown();
-    return 0; // 0 = Erfolg
+    return 0;
 }
