@@ -349,16 +349,16 @@ body::-webkit-scrollbar {
 
 /* ========== Curve Editor Overlay ========== */
 .curve-editor-overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 40px;
+    background: rgba(0,0,0,0.6);
 
+    overflow: hidden; /* kein Scroll */
+}
 .curve-editor-container {
   position: relative;
 }
@@ -402,3 +402,89 @@ body::-webkit-scrollbar {
 }
 #globalApplyBtn { background: #00bcd4; color: #000; padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; }
 #globalResetBtn { background: #444;    color: #fff; padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; }
+
+.curve-editor-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.curve-editor-canvas {
+    width: 100%;
+    max-width: 600px;
+}
+
+.curve-editor-side {
+    width: 100%;
+    max-width: 600px;
+    background: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 8px;
+    color: #ddd;
+    font-family: sans-serif;
+    box-sizing: border-box;
+}
+
+.curve-editor-side-title {
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.curve-editor-points-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.curve-editor-point-row {
+    background: #2a2a2a;
+    border-radius: 8px;
+    padding: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    min-width: 0;
+}
+
+.curve-editor-point-row.active {
+    background: #144850;
+}
+
+.curve-editor-point-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.curve-editor-point-inputs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 6px;
+}
+
+.curve-editor-point-inputs input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 3px 5px;
+    font-size: 12px;
+    border-radius: 5px;
+    border: 1px solid #555;
+    background: #111;
+    color: #eee;
+}
+
+.curve-editor-point-inputs input:disabled {
+    opacity: 0.6;
+}
+
+.curve-editor-delete-point {
+    border: none;
+    border-radius: 5px;
+    background: #5a2222;
+    color: white;
+    font-size: 11px;
+    padding: 3px 6px;
+    cursor: pointer;
+}
