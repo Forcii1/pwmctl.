@@ -24,15 +24,13 @@ int main (){
     const std::filesystem::path CONFIGpath =std::filesystem::path(std::getenv("HOME")) / ".config" / "pwmctl.conf";
 
     const std::filesystem::path fanpath=searchpath("it86","it87");
+
+
+    json j=loadconf(CONFIGpath);
+    auto& fans = j["Fans"];
+    int fanCount = fans.size();
     
-    //When fanpth is NONE -> no driver found, try to install
-    /*if(!fanpath.compare("NONE")){
-        install_driver();
-        return 0;
-    }*/
-
-
-    initfancontrol(1,fanpath);
+    initfancontrol(1,fanpath,fanCount);
 
     if(AMDpath.string()=="NONE"){
         nvi=1;
@@ -57,9 +55,6 @@ int main (){
         auto& curves = j["Curves"];
         std::size_t fanCount = fans.size();
         auto& gpus = j["Gpus"];
-        if(! initsock()){
-            continue;
-        }
 
         if(nvi){
             GPUTEMP=nvitemp(device);
@@ -68,16 +63,43 @@ int main (){
         }
         CPUTEMP=readfile(CPUtemppath)/1000;
 
-
-
         for (unsigned int i=1;i <=fanCount;i++) {
+            initsock();
             setpwm(fans,curves,std::to_string(i),fanpath,0,GPUTEMP,CPUTEMP);
+            closesock();
+        }
+        initsock();
+        setpwm(gpus,curves,std::to_string(0),AMDfanpath,(nvi?1:2),GPUTEMP,CPUTEMP);
+        closesock();
+
+        json status;
+        status["cpu_temp"] = CPUTEMP;
+        status["gpu_temp"] = GPUTEMP;
+        if (nvi) {
+            status["gpu_fan_percent"] = get_nvidia_fan(device);
+            status["gpu_fan_rpm"] = nullptr;
+        } else {
+            status["gpu_fan_percent"] = nullptr;
+            status["gpu_fan_rpm"] = readfile(AMDpath.string() + "fan1_input");
+        }
+        status["fan_count"] = fanCount;
+        
+        const std::filesystem::path STATUSpath =
+        std::filesystem::path(std::getenv("HOME")) / ".cache" / "pwmctl-status.json";
+
+        std::filesystem::create_directories(STATUSpath.parent_path());
+
+        std::filesystem::path tmp = STATUSpath;
+        tmp += ".tmp";
+
+        std::ofstream statusFile(tmp);
+        if (statusFile) {
+            statusFile << status.dump();
+            statusFile.close();
+            std::filesystem::rename(tmp, STATUSpath);
         }
 
-        setpwm(gpus,curves,std::to_string(0),AMDfanpath,(nvi?1:2),GPUTEMP,CPUTEMP);
         std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        closesock();
     }
     return 0;
 }

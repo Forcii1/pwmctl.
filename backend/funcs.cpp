@@ -16,6 +16,20 @@ using json = nlohmann::json;
 
 int sock=0;
 
+int fallback(const char* cmd) {
+    FILE* f = popen(cmd, "r");
+    if (!f) return -1;
+
+    char buf[64];
+    if (!fgets(buf, sizeof(buf), f)) {
+        pclose(f);
+        return -1;
+    }
+    pclose(f);
+
+    return atoi(buf);
+}
+
 nvmlDevice_t nvmlinit(){
     nvmlReturn_t result;
     nvmlDevice_t device;
@@ -35,11 +49,18 @@ nvmlDevice_t nvmlinit(){
     return device;
 }
 
-float nvitemp(nvmlDevice_t device) {
-    unsigned int temp;
-    if (nvmlDeviceGetTemperature(device, NVML_TEMPERATURE_GPU, &temp) == NVML_SUCCESS)
-        return temp;
-    return -1;
+int nvitemp(nvmlDevice_t device) {
+    int temp = -1;
+    unsigned int t;
+    nvmlReturn_t result = nvmlDeviceGetTemperature(device, NVML_TEMPERATURE_GPU, &t);
+
+    if (result == NVML_SUCCESS) {
+        temp = t;
+    } else {
+        std::cerr << "Temp error: " << nvmlErrorString(result) << "\n";
+        temp = fallback("nvidia-settings --display= -q GPUCoreTemp -t 2>/dev/null");
+    }
+    return temp;
 }
 
 int writefile(std::string path, int a){
@@ -172,7 +193,6 @@ bool send_pwm_command(const std::string& path, int value) {
     ssize_t total_sent = 0;
     ssize_t len = cmd.size();
     const char* data = cmd.c_str();
-
     while (total_sent < len) {
         ssize_t n = write(sock, data + total_sent, len - total_sent);
         if (n <= 0) {
@@ -182,6 +202,7 @@ bool send_pwm_command(const std::string& path, int value) {
         total_sent += n;
     }
     return true;
+    
 }
 
 int setnvtemp(int pwm){
@@ -242,19 +263,30 @@ int setpwm(nlohmann::json& type,nlohmann::json& curves, std::string num,std::str
     send_pwm_command(path+"pwm"+(num), pwm);
     return 0;
 }
-int initfancontrol(int a, std::string path){
-    int i=2;
+
+int initfancontrol(int a, std::string path,int count){
     initsock();
-    while(true){
+    for(int i=2;i<count;i++){
         if(!send_pwm_command(path+"pwm"+std::to_string(i)+"_enable", a)) break; 
-        i++;
         if(i==20) {
-            std::cout<<"fans: "<<i-1<<std::endl;
-            closesock();
-            return 1;
+            break;
         }
     }
     closesock();
     return 0;
 }
 
+int get_nvidia_fan(nvmlDevice_t device){
+    int fan = -1;
+    unsigned int f;
+    nvmlReturn_t result = nvmlDeviceGetFanSpeed(device, &f);
+
+    if (result == NVML_SUCCESS) {
+        fan = f;
+    } else {
+        std::cerr << "Fan error: " << nvmlErrorString(result) << "\n";
+        fan = fallback("nvidia-settings --display= -q [fan:0]/GPUCurrentFanSpeed -t 2>/dev/null");       
+    }
+
+    return fan;
+}
