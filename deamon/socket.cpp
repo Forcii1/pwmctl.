@@ -71,85 +71,94 @@ int main() {
         int client = accept(server, nullptr, nullptr);
         if (client < 0) continue;
 
-        char buf[256];
-        int len = read(client, buf, sizeof(buf) - 1);
-        if (len <= 0) { close(client); continue; }
+        std::string buffer;
+        char chunk[256];
 
-        buf[len] = '\0';
-        std::string cmd(buf);
+        // Erstes read blockierend
+        int n = read(client, chunk, sizeof(chunk));
+        while (n > 0) {
+            buffer.append(chunk, n);
+            n = recv(client, chunk, sizeof(chunk), MSG_DONTWAIT);
+        }
 
-        // -------------------------------
-        // NVIDIA FAN CONTROL
-        // -------------------------------
-        // Syntax: NVIDIA FAN 30
-        if (cmd.rfind("NVIDIA FAN ", 0) == 0) {
-            std::string value = cmd.substr(11);
+        size_t pos;
+        while ((pos = buffer.find('\n')) != std::string::npos) {
+            std::string cmd = buffer.substr(0, pos);
+            buffer.erase(0, pos + 1);
+            if (cmd.empty()) continue;
+            // -------------------------------
+            // NVIDIA FAN CONTROL
+            // -------------------------------
+            // Syntax: NVIDIA FAN 30
+            if (cmd.rfind("NVIDIA FAN ", 0) == 0) {
+                std::string value = cmd.substr(11);
 
-            int speed = std::stoi(value);
-            if (speed < 30 || speed > 100) {
-                std::cerr << "Ungültiger FAN-Wert.\n";
+                int speed = std::stoi(value);
+                if (speed < 30 || speed > 100) {
+                    std::cerr << "Ungültiger FAN-Wert.\n";
+                    close(client);
+                    continue;
+                }
+
+            std::string nvcmd =
+                "nvidia-settings --display=:1 -a \"[fan]/GPUTargetFanSpeed=" +
+                std::to_string(speed) + "\" > /dev/null 2>&1";
+
+                system(nvcmd.c_str());
+                //std::cout << "NVIDIA Fan → " << speed << "%\n";
+
+                close(client);
+                continue;
+            }
+            if (cmd.rfind("NVIDIA STATE ", 0) == 0) {
+                std::string value = cmd.substr(12);
+                std::string nvcmd =
+                    "nvidia-settings --display=:1 -a \"[gpu]/GPUFanControlState=" +
+                    value+ "\" > /dev/null 2>&1";
+
+                system(nvcmd.c_str());
+                //std::cout << "NVIDIA State → " << value << "%\n";
+
                 close(client);
                 continue;
             }
 
-        std::string nvcmd =
-            "nvidia-settings --display=:1 -a \"[fan]/GPUTargetFanSpeed=" +
-            std::to_string(speed) + "\" > /dev/null 2>&1";
+            // -------------------------------
+            // SET path value
+            // -------------------------------
+            if (cmd.rfind("SET ", 0) != 0) {
+                std::cerr << "Ungültiges Kommando.\n";
+                close(client);
+                continue;
+            }
 
-            system(nvcmd.c_str());
-            //std::cout << "NVIDIA Fan → " << speed << "%\n";
+            size_t p1 = cmd.find(' ');
+            size_t p2 = cmd.find(' ', p1 + 1);
+            if (p1 == std::string::npos || p2 == std::string::npos) {
+                std::cerr << "Ungültiges Kommando.\n";
+                close(client);
+                continue;
+            }
 
-            close(client);
-            continue;
+            std::string path  = cmd.substr(p1 + 1, p2 - p1 - 1);
+            std::string value = cmd.substr(p2 + 1);
+
+            // Pfad validieren
+            if (!is_path_allowed(path)) {
+                std::cerr << "Pfad verboten: " << path << "\n";
+                close(client);
+                continue;
+            }
+
+            std::ofstream file(path);
+            if (!file) {
+                std::cerr << "Fehler beim Schreiben in " << path << "\n";
+            } else {
+                file << value;
+                //std::cout << "Set " << path << " to " << value << "\n";
+            }
+            
         }
-        if (cmd.rfind("NVIDIA STATE ", 0) == 0) {
-            std::string value = cmd.substr(12);
-            std::string nvcmd =
-                "nvidia-settings --display=:1 -a \"[gpu]/GPUFanControlState=" +
-                value+ "\" > /dev/null 2>&1";
-
-            system(nvcmd.c_str());
-            //std::cout << "NVIDIA State → " << value << "%\n";
-
-            close(client);
-            continue;
-        }
-
-        // -------------------------------
-        // SET path value
-        // -------------------------------
-        if (cmd.rfind("SET ", 0) != 0) {
-            std::cerr << "Ungültiges Kommando.\n";
-            close(client);
-            continue;
-        }
-
-        size_t p1 = cmd.find(' ');
-        size_t p2 = cmd.find(' ', p1 + 1);
-        if (p1 == std::string::npos || p2 == std::string::npos) {
-            std::cerr << "Ungültiges Kommando.\n";
-            close(client);
-            continue;
-        }
-
-        std::string path  = cmd.substr(p1 + 1, p2 - p1 - 1);
-        std::string value = cmd.substr(p2 + 1);
-
-        // Pfad validieren
-        if (!is_path_allowed(path)) {
-            std::cerr << "Pfad verboten: " << path << "\n";
-            close(client);
-            continue;
-        }
-
-        std::ofstream file(path);
-        if (!file) {
-            std::cerr << "Fehler beim Schreiben in " << path << "\n";
-        } else {
-            file << value;
-            //std::cout << "Set " << path << " to " << value << "\n";
-        }
-
         close(client);
     }
 }
