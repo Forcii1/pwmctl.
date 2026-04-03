@@ -23,6 +23,11 @@ int main (){
     const std::filesystem::path AMDfanpath = AMDpath.string()+"fan1_target";
     const std::filesystem::path CONFIGpath =std::filesystem::path(std::getenv("HOME")) / ".config" / "pwmctl.conf";
 
+    const std::filesystem::path STATUSpath =
+    std::filesystem::path(std::getenv("HOME")) / ".cache" / "pwmctl-status.json";
+
+    std::filesystem::create_directories(STATUSpath.parent_path());
+    
     const std::filesystem::path fanpath=searchpath("it86","it87");
 
 
@@ -84,10 +89,7 @@ int main (){
         }
         status["fan_count"] = fanCount;
         
-        const std::filesystem::path STATUSpath =
-        std::filesystem::path(std::getenv("HOME")) / ".cache" / "pwmctl-status.json";
-
-        std::filesystem::create_directories(STATUSpath.parent_path());
+        
 
         std::filesystem::path tmp = STATUSpath;
         tmp += ".tmp";
