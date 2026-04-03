@@ -1,9 +1,7 @@
 
-#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <string>
-#include <thread>
 #include <iostream>
 
 #include <sys/socket.h>
@@ -17,15 +15,6 @@ using json = nlohmann::json;
 #define SOCKET_PATH "/var/run/pwmctld.sock"
 
 int sock=0;
-
-int install_driver(){
-    //system("cd /home/hannes/extra/it87 && git pull && make && sudo make install &&  cd /lib/modules/$(uname -r)/kernel/drivers/hwmon && sudo cp it87.ko it87.ko.zst");
-    system("cd /home/hannes/extra/it87 && git pull && make");
-    system("sudo make -C /home/hannes/extra/it87 install");
-    system("sudo cp /lib/modules/$(uname -r)/kernel/drivers/hwmon/it87.ko /lib/modules/$(uname -r)/kernel/drivers/hwmon/it87.ko.zst");
-    
-    return 0;
-}
 
 nvmlDevice_t nvmlinit(){
     nvmlReturn_t result;
@@ -171,10 +160,10 @@ bool send_pwm_command(const std::string& path, int value) {
             std::cerr << "Ungültiger NVIDIA-FAN-Wert: " << value << "\n";
             return false;
         }
-        cmd = "NVIDIA FAN " + std::to_string(value);
+        cmd = "SET NVIDIA FAN " + std::to_string(value);
     } else if (path == "NVIDIASTATE") {
        
-        cmd = "NVIDIA STATE " + std::to_string(value);
+        cmd = "SET NVIDIA STATE " + std::to_string(value);
     }else {
         // Mainboard-PWM
         cmd = "SET " + path + " " + std::to_string(value);
@@ -268,3 +257,4 @@ int initfancontrol(int a, std::string path){
     closesock();
     return 0;
 }
+

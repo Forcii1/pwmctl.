@@ -1,9 +1,9 @@
 #include <chrono>
 #include <string>
 #include <thread>
-#include "funcs.h"
+#include "funcs.cpp"
 #include "json.hpp"
-#include "nvml.h"
+#include "../nvml.h"
 
 using json = nlohmann::json;
 
