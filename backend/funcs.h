@@ -243,18 +243,28 @@ int setpwm(nlohmann::json& type,nlohmann::json& curves, std::string num,std::str
         setnvtemp(int(pwm/2.55));
         //send_pwm_command("NVIDIA", int(pwm/2.55));
         return 0;
-    }else if(gpu==2){
+    }else if(gpu==2){   
         send_pwm_command(path, pwm);
         return 0;
+    }
+    if (!type[num]["enabled"] && stoi(curve) <= 0) {
+        return -1;  // Nicht senden
     }
     send_pwm_command(path+"pwm"+(num), pwm);
     return 0;
 }
 int initfancontrol(int a, std::string path){
     int i=2;
+    initsock();
     while(true){
         if(!send_pwm_command(path+"pwm"+std::to_string(i)+"_enable", a)) break; 
         i++;
+        if(i==20) {
+            std::cout<<"fans: "<<i-1<<std::endl;
+            closesock();
+            return 1;
+        }
     }
+    closesock();
     return 0;
 }
