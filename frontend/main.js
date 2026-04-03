@@ -23,8 +23,8 @@ if (!gotLock) {
 app.setName('pwmctl');
 function createWindow() {
     const win = new BrowserWindow({
-        width: 1200,
-        height: 800,
+        minWidth: 1200,
+        minHeight: 800,
         autoHideMenuBar: true,
         icon: path.join(__dirname, 'assets/icon.png'),
         show: false,

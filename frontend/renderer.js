@@ -384,7 +384,7 @@ function createCurveElement(fromdata,name, id = null, points = [{ x: 0, y: 0 }])
 
 // ==================== CURVE ADD & SAVE ====================
 addCurveBtn.addEventListener('click', () => {
-    curve=createCurveElement(false,`Curve`);
+    const curve = createCurveElement(false, `Curve`);
     updateCurveSelect(curve);
 });
 
@@ -444,21 +444,25 @@ function collectAllData() {
 
 
 async function saveData() {
-    const data = collectAllData();
-    await window.electronAPI.saveAllData(data);
+    try {
+        const data = collectAllData();
+        await window.electronAPI.saveAllData(data);
+        markSaved();
+    } catch (err) {
+        console.error('Save failed:', err);
+        markSaveError();
+    }
 }
-
 function updateCurveSelect(curve) {
-    const curveselect = document.querySelectorAll('.myCurveSelect')
+    const curveselects = document.querySelectorAll('.myCurveSelect');
 
-        curveselect.forEach(curvesselec => {
-            curvesselec.options="";
-            const title = curve.querySelector('.curve-title');
-            const id = curve.dataset.id;
-            if (title) {
-            curvesselec.options.add(new Option(title.textContent, id));
+    curveselects.forEach(curveselect => {
+        const title = curve.querySelector('.curve-title');
+        const id = curve.dataset.id;
+        if (title) {
+            curveselect.add(new Option(title.textContent, id));
         }
-        });
+    });
 }
 
 function deleteSelect(curve) {
@@ -513,3 +517,56 @@ document.getElementById('globalResetBtn').addEventListener('click', async () => 
     await loadCurves(savedData);
     await createFanButtons("it87", "it86", "Fans", savedData);
 });
+
+
+
+//Save logic
+const applyBtn = document.getElementById('globalApplyBtn');
+const saveStatus = document.getElementById('saveStatus');
+
+let isDirty = false;
+let statusTimer = null;
+
+function clearSaveStatusTimer() {
+    if (statusTimer) {
+        clearTimeout(statusTimer);
+        statusTimer = null;
+    }
+}
+
+function markSaved() {
+    isDirty = false;
+    applyBtn.classList.remove('unsaved');
+
+    saveStatus.textContent = 'Config saved';
+    saveStatus.classList.remove('unsaved', 'error');
+    saveStatus.classList.add('saved');
+
+    document.title = 'pwmctl.';
+    clearSaveStatusTimer();
+
+    statusTimer = setTimeout(() => {
+        if (!isDirty) {
+            saveStatus.textContent = '';
+            saveStatus.classList.remove('saved');
+        }
+    }, 1800);
+}
+
+function markSaveError() {
+    saveStatus.textContent = 'Save failed';
+    saveStatus.classList.remove('saved', 'unsaved');
+    saveStatus.classList.add('error');
+
+    clearSaveStatusTimer();
+    statusTimer = setTimeout(() => {
+        if (isDirty) {
+            saveStatus.textContent = 'Unsaved changes';
+            saveStatus.classList.remove('saved', 'error');
+            saveStatus.classList.add('unsaved');
+        } else {
+            saveStatus.textContent = '';
+            saveStatus.classList.remove('error');
+        }
+    }, 2500);
+}

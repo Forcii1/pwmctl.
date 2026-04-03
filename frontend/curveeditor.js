@@ -9,8 +9,8 @@ export function openCurveEditor(points, miniCanvas, onSave) {
     overlay.appendChild(editorContainer);
 
     const canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 300;
+    canvas.width = 800;
+    canvas.height = 400;
     canvas.className = 'curve-editor-canvas';
     editorContainer.appendChild(canvas);
 

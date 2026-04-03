@@ -2,11 +2,11 @@
 :root {
   --primary-color: #00bcd4;
   --primary-color-hover: #26d3ea;
-  --background-fade: rgba(255,255,255,0.04);
-  --background-content: rgba(255,255,255,0.02);
+  --background-fade: rgba(255, 255, 255, 0.04);
+  --background-content: rgba(255, 255, 255, 0.02);
   --border-radius: 6px;
   --container-radius: 12px;
-  --shadow: 0 0 6px rgba(0,0,0,0.25);
+  --shadow: 0 0 6px rgba(0, 0, 0, 0.25);
   --font-main: "Inter", sans-serif;
 }
 
@@ -16,15 +16,121 @@ body {
   background: linear-gradient(135deg, #1e1e2f, #2c3e50);
   color: #f0f0f0;
   margin: 0;
-  padding: 20px;
-  min-height: calc(100vh - 40px);
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  user-select: none; /* verhindert markieren */
+  user-select: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* ========== Sticky Header ========== */
+#topRow {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+
+  padding: 20px 20px 12px 20px;
+  background: linear-gradient(135deg, #1e1e2f, #2c3e50);
+  border-bottom: 3px solid #333;
+}
+
+.logo,
+h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: var(--primary-color);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+#globalActionBar {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+#globalApplyBtn,
+#globalResetBtn {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#globalApplyBtn {
+  background: #00bcd4;
+  color: #000;
+}
+
+#globalResetBtn {
+  background: #444;
+  color: #fff;
+}
+
+#globalActionBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+#saveStatus {
+  min-width: 110px;
+  font-size: 0.85rem;
+  color: #b8c7d1;
+  text-align: right;
+}
+
+#globalApplyBtn.unsaved {
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 0 10px rgba(0,188,212,0.35);
+}
+
+#globalApplyBtn.unsaved::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffb347;
+}
+
+#saveStatus.saved {
+  color: #7ee787;
+}
+
+#saveStatus.unsaved {
+  color: #ffb347;
+}
+
+/* ========== Inhaltsabstände ========== */
+h2,
+#buttonsContainer,
+#curvesContainer {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+h2 {
+  margin-top: 16px;
+  margin-bottom: 10px;
 }
 
 /* ========== Container ========== */
-.container, .curve-container {
+.container,
+.curve-container {
   background: transparent;
   box-shadow: var(--shadow);
   border-radius: var(--container-radius);
@@ -33,31 +139,10 @@ body {
 }
 
 /* ========== Typografie ========== */
-h1 {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-  color: var(--primary-color);
-  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  pointer-events: none; /* verhindert Klicks und Mausinteraktion */
-  border-bottom: 3px solid #333;
-  padding-bottom: 8px;
-}
-
-
 p {
   font-size: 1rem;
   color: #ccc;
-  pointer-events: none; /* verhindert Klicks und Mausinteraktion */
-}
-
-.applybtn{
-  margin-top: 5px; 
-  width: max-content; 
-  cursor: pointer;
-  /*margin-left: auto; 
-  margin-right: 0;*/
-  margin-top: -1px;
-
+  pointer-events: none;
 }
 
 /* ========== Buttons ========== */
@@ -76,15 +161,19 @@ button:hover {
   background-color: #009bb1;
 }
 
+.applybtn {
+  width: max-content;
+  margin-top: -1px;
+}
+
 /* ========== Inputs ========== */
 input[type="text"],
 input[type="range"],
 select {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: #fff;
   border-radius: var(--border-radius);
-  
   font-size: 0.9rem;
 }
 
@@ -98,7 +187,7 @@ input[type="range"] {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(0,188,212,0.08);
+  background: rgba(0, 188, 212, 0.08);
   border-radius: var(--container-radius) var(--container-radius) 0 0;
   color: var(--primary-color);
   user-select: none;
@@ -116,8 +205,8 @@ input[type="range"] {
 }
 
 .fan-name-input {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
   font-weight: 700;
   padding: 2px 6px;
@@ -147,53 +236,43 @@ input[type="range"] {
   white-space: nowrap;
 }
 
-/*  (Fan Header)          ========== myCurveSelect ==================== */
+/* ========== Curve Select ========== */
 .myCurveSelect {
-    width: 100%;
-    padding: 6px 8px;
-    font-size: 0.9rem;
-    border-radius: var(--border-radius);
-    border: 1px solid rgba(255,255,255,0.2);
-    background-color: rgba(255,255,255,0.08);
-    color: #fff;               /* Schriftfarbe */
-    appearance: none;
-    cursor: pointer;
-    transition: 0.2s;
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 0.9rem;
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  appearance: none;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
-/* Hover-Effekt */
 .myCurveSelect:hover {
-    border-color: var(--primary-color);
-    background-color: rgba(0,188,212,0.1);
+  border-color: var(--primary-color);
+  background-color: rgba(0, 188, 212, 0.1);
 }
 
-/* Fokus-Effekt */
 .myCurveSelect:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 4px var(--primary-color);
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 4px var(--primary-color);
 }
 
-/* Option Styling */
-.myCurveSelect option {
-    background-color: rgba(30,30,47,1); /* dunkler Hintergrund für Optionen */
-    color: #fff;                         /* weiße Schrift für Optionen */
-}
-
-/* Optional: dunkles Theme beim Focus */
+.myCurveSelect option,
 .myCurveSelect:focus option {
-    background-color: rgba(30,30,47,1);
-    color: #fff;
+  background-color: rgb(30, 30, 47);
+  color: #fff;
 }
 
-
-/* ========== Content (immer sichtbar) ========== */
+/* ========== Content ========== */
 .content {
   max-height: none;
   overflow: visible;
   padding: 10px;
   background: var(--background-content);
-  transition: none;
 }
 
 .content div {
@@ -232,7 +311,7 @@ input[type="range"] {
 }
 
 .content div input[type="checkbox"]:checked::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 6px;
   top: 2px;
@@ -249,23 +328,22 @@ input[type="range"] {
   border-radius: var(--container-radius);
   padding: 12px;
   margin-bottom: 14px;
-  box-shadow: 0 0 6px rgba(0,0,0,0.3);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.curve-container .header {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* ========== Curve Left & Right ========== */
-.curve-left, .curve-right {
+.curve-container .header,
+.curve-left,
+.curve-right {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.curve-container .header {
+  gap: 6px;
 }
 
 .curve-title {
@@ -277,9 +355,8 @@ input[type="range"] {
 .curve-fans {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 3px; 
+  gap: 3px;
 }
-
 
 .curve-fan-btn,
 .curve-sensor-btn,
@@ -299,7 +376,6 @@ input[type="range"] {
   color: #fff;
 }
 
-/* Sensors unter Fans */
 .curve-sensors {
   display: flex;
   gap: 3px;
@@ -311,12 +387,12 @@ input[type="range"] {
   width: 100%;
   height: 100px;
   border-radius: 8px;
-  background: rgba(0,0,0,0.2);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 /* ========== Add Curve Button ========== */
 #addCurveBtn {
-  background: rgba(0,188,212,0.2);
+  background: rgba(0, 188, 212, 0.2);
   color: var(--primary-color);
   font-weight: 600;
   width: 100%;
@@ -330,7 +406,7 @@ input[type="range"] {
 }
 
 #addCurveBtn:hover {
-  background: rgba(0,188,212,0.3);
+  background: rgba(0, 188, 212, 0.3);
   color: var(--primary-color-hover);
 }
 
@@ -342,149 +418,161 @@ input[type="range"] {
   gap: 10px;
 }
 
-/* ========== Scrollbar ========== */
-body::-webkit-scrollbar {
-  display: none;
-}
-
 /* ========== Curve Editor Overlay ========== */
 .curve-editor-overlay {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 40px;
-    background: rgba(0,0,0,0.6);
-
-    overflow: hidden; /* kein Scroll */
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 50;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
+
 .curve-editor-container {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  margin: auto;
+  background: #171c24;
+  border: 1px solid rgba(0, 188, 212, 0.28);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
 }
 
 .curve-editor-canvas {
-  background: #1e1e2f;
-  border: 1px solid var(--primary-color);
-  border-radius: var(--border-radius);
+  background: #111722;
+  border: 1px solid rgba(0, 188, 212, 0.45);
+  border-radius: 8px;
+  max-width: 800px;
+  width: 100%;
+  height: 400px;
+  display: block;
 }
 
 .curve-editor-close {
   position: absolute;
-  top: -20px; right: -15px;
+  top: -8px;
+  right: -8px;
   cursor: pointer;
-  padding: 5px 10px;
+  padding: 4px 8px;
   font-size: 1rem;
-  background-color: var(--primary-color);
-  color: #fff;
-  border: none;
-  border-radius: 4px;
+  background: rgba(0, 188, 212, 0.18);
+  color: var(--primary-color);
+  border: 1px solid rgba(0, 188, 212, 0.25);
+  border-radius: 6px;
+}
+
+.curve-editor-close:hover {
+  background: rgba(0, 188, 212, 0.32);
 }
 
 .curve-editor-coord {
   position: absolute;
-  top: 5px;
-  left: 10px;
+  top: 2px;
+  left: 12px;
   color: var(--primary-color);
   font-size: 0.85rem;
-  user-select: none; /* verhindert markieren */
-  pointer-events: none; /* verhindert Klicks und Mausinteraktion */
-}
-
-#globalActionBar {
-  position: sticky;
-  top: 0;
-  display: flex;
-  gap: 8px;
-  padding: 8px 16px;
-  /*background: #1e1e1e;*/
-  z-index: 999;
-}
-#globalApplyBtn { background: #00bcd4; color: #000; padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; }
-#globalResetBtn { background: #444;    color: #fff; padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; }
-
-.curve-editor-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.curve-editor-canvas {
-    width: 100%;
-    max-width: 600px;
+  pointer-events: none;
 }
 
 .curve-editor-side {
-    width: 100%;
-    max-width: 600px;
-    background: #1e1e1e;
-    border: 1px solid #444;
-    border-radius: 10px;
-    padding: 8px;
-    color: #ddd;
-    font-family: sans-serif;
-    box-sizing: border-box;
+  width: 100%;
+  max-width: 800px;
+  background: #0f141c;
+  border: 1px solid rgba(0, 188, 212, 0.18);
+  border-radius: 10px;
+  padding: 10px;
+  color: #d9e3ea;
+  box-sizing: border-box;
 }
 
 .curve-editor-side-title {
-    font-size: 13px;
-    font-weight: bold;
-    margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--primary-color);
 }
 
 .curve-editor-points-list {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .curve-editor-point-row {
-    background: #2a2a2a;
-    border-radius: 8px;
-    padding: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    min-width: 0;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(0, 188, 212, 0.1);
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  min-width: 0;
+  transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
+}
+
+.curve-editor-point-row:hover {
+  background: rgba(0, 188, 212, 0.08);
+  border-color: rgba(0, 188, 212, 0.35);
 }
 
 .curve-editor-point-row.active {
-    background: #144850;
+  background: rgba(0, 188, 212, 0.14);
+  border-color: rgba(0, 188, 212, 0.75);
+  box-shadow: 0 0 0 1px rgba(0, 188, 212, 0.18);
 }
 
 .curve-editor-point-label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: var(--primary-color);
 }
 
 .curve-editor-point-inputs {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 6px;
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
 }
 
 .curve-editor-point-inputs input {
-    width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
-    padding: 3px 5px;
-    font-size: 12px;
-    border-radius: 5px;
-    border: 1px solid #555;
-    background: #111;
-    color: #eee;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 3px 5px;
+  font-size: 12px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 188, 212, 0.18);
+  background: #0b1016;
+  color: #eef7fb;
+}
+
+.curve-editor-point-inputs input:focus {
+  outline: none;
+  border-color: rgba(0, 188, 212, 0.7);
+  box-shadow: 0 0 0 1px rgba(0, 188, 212, 0.2);
 }
 
 .curve-editor-point-inputs input:disabled {
-    opacity: 0.6;
+  opacity: 0.65;
 }
 
 .curve-editor-delete-point {
-    border: none;
-    border-radius: 5px;
-    background: #5a2222;
-    color: white;
-    font-size: 11px;
-    padding: 3px 6px;
-    cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  background: rgba(255, 90, 90, 0.18);
+  color: #ff8a8a;
+  font-size: 11px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+.curve-editor-delete-point:hover {
+  background: rgba(255, 90, 90, 0.32);
 }

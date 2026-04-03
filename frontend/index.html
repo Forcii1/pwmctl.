@@ -4,20 +4,25 @@
   <meta charset="UTF-8">
   <title>pwmctl.</title>
   <link rel="stylesheet" href="style.css">
-  <h1 class="logo">pwmctl.</h1>
-  <div id="globalActionBar">
-    <button id="globalApplyBtn">✔ Apply</button>
-    <button id="globalResetBtn">↺ Reset</button>
-  </div>
 </head>
 <body>
+  <div id="topRow">
+    <h1 class="logo">pwmctl.</h1>
+    <div id="globalActionBar">
+      <span id="saveStatus"></span>
+      <button id="globalApplyBtn">✔ Apply</button>
+      <button id="globalResetBtn">↺ Load old config</button>
+    </div>
+  </div>
+
   <h2 style="text-align: left;">Fans</h2>
   <div id="buttonsContainer"></div>
- <h2 style="display: flex; align-items: center; gap: 10px;">
-  Curves
-  <button id="addCurveBtn" style="font-size: 1.2rem; width: 25px; height: 25px; cursor: pointer;">+</button>
-  
+
+  <h2 style="display: flex; align-items: center; gap: 10px;">
+    Curves
+    <button id="addCurveBtn" style="font-size: 1.2rem; width: 25px; height: 25px; cursor: pointer;">+</button>
   </h2>
+
   <div id="curvesContainer"></div>
 
   <script type="module" src="renderer.js"></script>
