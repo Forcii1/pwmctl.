@@ -39,16 +39,16 @@ async function createFanButtons(name1, name2, displayName, savedData = null) {
 
     for (let i = 1; i <= count; i++) {
         const fanData = savedData?.Fans?.[i] || null;
-        createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, true, false, fanData);
+        createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, false, fanData);
     }
 
     const gpuFanData = savedData?.Gpus?.[0]|| null;
 
-    createFanUI(container, "GPU Fan", gpuFanFile, true, isNvidia, gpuFanData);
+    createFanUI(container, "GPU Fan", gpuFanFile, isNvidia, gpuFanData);
 }
 
 //LOADING
-function createFanUI(container, fanName, fanFile, showPWM, isNvidia, savedData = null) {
+function createFanUI(container, fanName, fanFile, isNvidia, savedData = null) {
     const fanContainer = document.createElement('div');
     fanContainer.classList.add('container');
 
@@ -85,77 +85,76 @@ function createFanUI(container, fanName, fanFile, showPWM, isNvidia, savedData =
     header.append(nameSpan, nameInput, speedLabel);
     fanContainer.appendChild(header);
 
-    if (showPWM) {
-        const content = document.createElement('div');
-        content.classList.add('content');
+    
+    const content = document.createElement('div');
+    content.classList.add('content');
 
-        const inputContainer = document.createElement('div');
-        inputContainer.style.display = 'flex';
-        inputContainer.style.flexDirection = 'column';
-        inputContainer.style.gap = '6px';
-        inputContainer.style.marginTop = '10px';
+    const inputContainer = document.createElement('div');
+    inputContainer.style.display = 'flex';
+    inputContainer.style.flexDirection = 'column';
+    inputContainer.style.gap = '6px';
+    inputContainer.style.marginTop = '10px';
 
-        const pwmLabel = document.createElement('label');
-        pwmLabel.textContent = 'man. Control';
-        const pwmCheckbox = document.createElement('input');
-        pwmCheckbox.type = 'checkbox';
-        pwmCheckbox.checked = savedData?.enabled || false;
+    const pwmLabel = document.createElement('label');
+    pwmLabel.textContent = 'man. Control';
+    const pwmCheckbox = document.createElement('input');
+    pwmCheckbox.type = 'checkbox';
+    pwmCheckbox.checked = savedData?.enabled || false;
 
-        const pwmvalLabel = document.createElement('label');
-        pwmvalLabel.textContent = 'PWM value ';
-        const pwmInput = document.createElement('input');
-        pwmInput.type = 'range';
-        pwmInput.min = '0';
-        pwmInput.max = '255';
-        pwmInput.value = savedData?.value || 0;
+    const pwmvalLabel = document.createElement('label');
+    pwmvalLabel.textContent = 'PWM value ';
+    const pwmInput = document.createElement('input');
+    pwmInput.type = 'range';
+    pwmInput.min = '0';
+    pwmInput.max = '255';
+    pwmInput.value = savedData?.value || 0;
+    pwmInput.disabled = !pwmCheckbox.checked;
+    pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
+
+
+    const curveselect = document.createElement('select');
+    curveselect.className="myCurveSelect"
+    // 2. Alle Kurven-Container finden
+    const curves = document.querySelectorAll('.curve-container');
+    const option = new Option("None", -1);
+    curveselect.options.add(option);
+    
+    // 3. Optionen hinzufügen
+    curves.forEach(curve => {
+        const title = curve.querySelector('.curve-title');
+        const id = curve.dataset.id; // die ID aus data-id
+        if (title && id !== undefined) {
+            const option = new Option(title.textContent, id); // Text = Name, Value = ID
+            curveselect.options.add(option);
+        }
+    });
+    curveselect.value=savedData?.curve || -1;
+
+
+    const pwmValueLabel = document.createElement('span');
+    pwmValueLabel.textContent = pwmInput.value;
+
+    /*const applyBtn = document.createElement('button');
+    applyBtn.textContent = '✔';
+    applyBtn.style.width = '30px';
+    applyBtn.style.cursor = 'pointer';*/
+
+    pwmCheckbox.addEventListener('change', () => {
         pwmInput.disabled = !pwmCheckbox.checked;
         pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
+    });
 
+    pwmInput.addEventListener('input', () => {
+        if (pwmCheckbox.checked) pwmValueLabel.textContent = pwmInput.value;
+    });
 
-        const curveselect = document.createElement('select');
-        curveselect.className="myCurveSelect"
-        // 2. Alle Kurven-Container finden
-        const curves = document.querySelectorAll('.curve-container');
-        const option = new Option("None", -1);
-        curveselect.options.add(option);
-        
-        // 3. Optionen hinzufügen
-        curves.forEach(curve => {
-            const title = curve.querySelector('.curve-title');
-            const id = curve.dataset.id; // die ID aus data-id
-            if (title && id !== undefined) {
-                const option = new Option(title.textContent, id); // Text = Name, Value = ID
-                curveselect.options.add(option);
-            }
-        });
-        curveselect.value=savedData?.curve || -1;
+    /*applyBtn.addEventListener('click', async () => {
+        saveData();
+    });*/
 
-
-        const pwmValueLabel = document.createElement('span');
-        pwmValueLabel.textContent = pwmInput.value;
-
-        /*const applyBtn = document.createElement('button');
-        applyBtn.textContent = '✔';
-        applyBtn.style.width = '30px';
-        applyBtn.style.cursor = 'pointer';*/
-
-        pwmCheckbox.addEventListener('change', () => {
-            pwmInput.disabled = !pwmCheckbox.checked;
-            pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
-        });
-
-        pwmInput.addEventListener('input', () => {
-            if (pwmCheckbox.checked) pwmValueLabel.textContent = pwmInput.value;
-        });
-
-        /*applyBtn.addEventListener('click', async () => {
-            saveData();
-        });*/
-
-        [pwmLabel,pwmCheckbox,pwmvalLabel, pwmInput, pwmValueLabel,curveselect].forEach(el => inputContainer.appendChild(el));
-        content.appendChild(inputContainer);
-        fanContainer.appendChild(content);
-    }
+    [pwmLabel,pwmCheckbox,pwmvalLabel, pwmInput, pwmValueLabel,curveselect].forEach(el => inputContainer.appendChild(el));
+    content.appendChild(inputContainer);
+    fanContainer.appendChild(content);
 
     container.appendChild(fanContainer);
 
