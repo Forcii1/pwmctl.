@@ -4,7 +4,7 @@ CXXFLAGS     := -g -Wall -std=c++17
 TARGET       := pwmctl
 SOCKET       := pwmctld
 SRC_BACKEND  := backend/main.cpp
-SRC_SOCKET   := deamon/socket.cpp
+SRC_SOCKET   := daemon/socket.cpp
 LIBS         := -lnvidia-ml
 INSTALL_DIR  := /usr/local/bin
 SOCKET_DIR   := /var/run
