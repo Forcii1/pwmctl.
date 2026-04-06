@@ -63,23 +63,6 @@ int nvitemp(nvmlDevice_t device) {
     return temp;
 }
 
-int writefile(std::string path, int a){
-    std::ofstream myfile2 (path);
-    if(path.find("NONE") != std::string::npos){
-        std::cerr<<"ERROR! ERROR NOT LOADED PROPERLY!\n";
-        return 1;
-    }
-    if(myfile2.bad()){
-        std::cerr<<"ERROR! EROR NOT LOADED PROPERLY!\n";
-        return 1;
-    }
-    myfile2<<a;
-    myfile2.close();
-
-    return 0;
-}
-
-
 int readfile(std::string path ){
     std::ifstream myfile;
     myfile.open(path);
@@ -170,7 +153,7 @@ bool closesock(){
     return true;
 }
 
-bool send_pwm_command(const std::string& path, int value) {
+bool send_command(const std::string& path, int value) {
 
     std::string cmd;
 
@@ -189,6 +172,7 @@ bool send_pwm_command(const std::string& path, int value) {
         // Mainboard-PWM
         cmd = "SET " + path + " " + std::to_string(value);
     }
+    initsock();
     cmd += "\n";
     ssize_t total_sent = 0;
     ssize_t len = cmd.size();
@@ -197,12 +181,13 @@ bool send_pwm_command(const std::string& path, int value) {
         ssize_t n = write(sock, data + total_sent, len - total_sent);
         if (n <= 0) {
             perror("write");
+            closesock();
             return false;
         }
         total_sent += n;
     }
+    closesock();
     return true;
-    
 }
 
 int setnvtemp(int pwm){
@@ -211,16 +196,16 @@ int setnvtemp(int pwm){
         return 0;
     }
     else if(pwm<30&&lastpwm>=30){
-        send_pwm_command("NVIDIASTATE",0);
+        send_command("NVIDIASTATE",0);
         lastpwm=pwm;
         return 0;
     }
     else if(lastpwm<30&&pwm>=30){
-        send_pwm_command("NVIDIASTATE",1);
+        send_command("NVIDIASTATE",1);
         lastpwm=pwm;
         return 0;
     }
-    send_pwm_command("NVIDIA", pwm);
+    send_command("NVIDIA", pwm);
     lastpwm=pwm;
 
     return 0;
@@ -241,7 +226,6 @@ int setpwm(nlohmann::json& type,nlohmann::json& curves, std::string num,std::str
                 pwm = calcpwm(temps, pwms, CPUTEMP, temps_vec.size());
                 break;
             case 1:
-                //std::cout<<CPUTEMP<<std::endl;
                 pwm = calcpwm(temps, pwms, GPUTEMP, temps_vec.size());
                 break;
             case 2:
@@ -249,30 +233,32 @@ int setpwm(nlohmann::json& type,nlohmann::json& curves, std::string num,std::str
                 break;
         }
     }
-    if(gpu==1){
+    if(gpu==1){//nvidia
         setnvtemp(int(pwm/2.55));
-        //send_pwm_command("NVIDIA", int(pwm/2.55));
+        //send_command("NVIDIA", int(pwm/2.55));
         return 0;
-    }else if(gpu==2){   
-        send_pwm_command(path, pwm);
+    }else if(gpu==2){   //amd
+        send_command(path, pwm);
         return 0;
     }
     if (!type[num]["enabled"] && stoi(curve) <= 0) {
+        send_command(path+"pwm"+num+"_enable", 2);
         return -1;  // Nicht senden
     }
-    send_pwm_command(path+"pwm"+(num), pwm);
+
+    send_command(path+"pwm"+num+"_enable", 1);
+    send_command(path+"pwm"+(num), pwm);
     return 0;
 }
 
 int initfancontrol(int a, std::string path,int count){
-    initsock();
-    for(int i=2;i<count;i++){
-        if(!send_pwm_command(path+"pwm"+std::to_string(i)+"_enable", a)) break; 
+
+    for(int i=1;i<count;i++){
+        if(!send_command(path+"pwm"+std::to_string(i)+"_enable", a)) break; 
         if(i==20) {
             break;
         }
     }
-    closesock();
     return 0;
 }
 

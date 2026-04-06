@@ -4,12 +4,22 @@
 #include "funcs.cpp"
 #include "json.hpp"
 #include "../nvml.h"
+#include <csignal>
+#include <atomic>
 
 using json = nlohmann::json;
 
+std::atomic<bool> running(true);
+
+void signal_handler(int sig) {
+    std::cout<<running<<std::endl;
+    running = false;
+}
 
 int main (){
-
+    //signal handler
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
     //vars
     int GPUTEMP=0;
     int CPUTEMP=0;
@@ -20,7 +30,7 @@ int main (){
     const std::filesystem::path CPUtemppath = searchpath("k10temp")+"temp1_input";
     const std::filesystem::path AMDpath = searchpath("amdgpu");
     const std::filesystem::path AMDtemppath = AMDpath.string()+"temp1_input";
-    const std::filesystem::path AMDfanpath = AMDpath.string()+"fan1_target";
+    const std::filesystem::path AMDfanpath = AMDpath.string()+"pwm1";
     const std::filesystem::path CONFIGpath =std::filesystem::path(std::getenv("HOME")) / ".config" / "pwmctl.conf";
 
     const std::filesystem::path STATUSpath =
@@ -35,7 +45,10 @@ int main (){
     auto& fans = j["Fans"];
     int fanCount = fans.size();
     
-    initfancontrol(1,fanpath,fanCount);
+
+    //init fan controll
+    //initfancontrol(1,fanpath,fanCount);
+    //Is not needed any more
 
     if(AMDpath.string()=="NONE"){
         nvi=1;
@@ -51,9 +64,12 @@ int main (){
             return 1;
         }
         std::cerr<<"NVML connected!\n";
+    }else if (AMDpath.string()!="NONE"){
+        //init amd fan controll
+        send_command("SET "+AMDpath.string()+"pwm1_enable",1);
     }
     
-    while (true) {
+    while (running) {
         //reload config if changes are made
         json j=loadconf(CONFIGpath);
         auto& fans = j["Fans"];
@@ -69,14 +85,11 @@ int main (){
         CPUTEMP=readfile(CPUtemppath)/1000;
 
         for (unsigned int i=1;i <=fanCount;i++) {
-            initsock();
             setpwm(fans,curves,std::to_string(i),fanpath,0,GPUTEMP,CPUTEMP);
-            closesock();
         }
-        initsock();
         setpwm(gpus,curves,std::to_string(0),AMDfanpath,(nvi?1:2),GPUTEMP,CPUTEMP);
-        closesock();
 
+        //safe temp and fan data
         json status;
         status["cpu_temp"] = CPUTEMP;
         status["gpu_temp"] = GPUTEMP;
@@ -103,5 +116,13 @@ int main (){
 
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+    std::cout<<"Shutting down!\n";
+    initfancontrol(2, fanpath, fanCount);
+    if(nvi){
+        send_command("NVIDIASTATE",0);
+    }else{
+        send_command("SET "+AMDpath.string()+"pwm1_enable",2);
+    }
+    //insert amd auto?
     return 0;
 }
