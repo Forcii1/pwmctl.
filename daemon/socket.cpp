@@ -213,6 +213,7 @@ int main() {
         std::cerr<<"NvidiaGPU found!\n";
     }
     
+    std::cerr<<"Daemon ready!\n";
 
     while (true) {
         int client = accept(server, nullptr, nullptr);
