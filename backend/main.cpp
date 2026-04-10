@@ -44,11 +44,6 @@ int main (){
     json j=loadconf(CONFIGpath);
     auto& fans = j["Fans"];
     int fanCount = fans.size();
-    
-
-    //init fan controll
-    //initfancontrol(1,fanpath,fanCount);
-    //Is not needed any more
 
     if(AMDpath.string()=="NONE"){
         nvi=1;
