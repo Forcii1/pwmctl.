@@ -10,6 +10,33 @@ const temperaturePath = path.join(os.homedir(), ".cache", "pwmctl-status.json");
 let tray = null;
 let backendProcess = null;
 
+
+function searchPath(name1, name2 = "") {
+  const hwmonBase = '/sys/class/hwmon/';
+  console.log(`[Preload] searchPath called with: ${name1}, ${name2}`);
+
+  try {
+    const entries = fs.readdirSync(hwmonBase, { withFileTypes: true });
+    console.log(`[Preload] Found ${entries.length} entries in ${hwmonBase}`);
+
+    for (const entry of entries) {
+        //if (!entry.isDirectory()) continue;
+        const nameFile = path.join(hwmonBase, entry.name, 'name');
+        if (fs.existsSync(nameFile)) {
+            const content = fs.readFileSync(nameFile, 'utf8').trim();
+            if (content.includes(name1) || (name2 && content.includes(name2))) {
+            const foundPath = path.join(hwmonBase, entry.name) + '/';
+            return foundPath;
+            }
+        }
+    }
+  } catch (err) {
+    console.error("[Preload] Error in searchPath:", err);
+  }
+
+  console.log("[Preload] No matching HWMon path found");
+  return "NONE";
+}
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
     app.quit();
@@ -101,19 +128,25 @@ ipcMain.handle('get-speed', async (event, filePath) => {
 });
 
 // Speichern
-ipcMain.handle('saveAllData', (event, configpath,data) => {
+ipcMain.handle('saveAllData', (event, path,data) => {
     if (!data) return console.error("❌ saveAllData: no data received!");
-    fs.writeFileSync(configPath, JSON.stringify(data, null, 4), 'utf-8');
-    console.log("✅ Konfiguration gespeichert:", configPath);
+    fs.writeFileSync(path, JSON.stringify(data, null, 4), 'utf-8');
+    console.log("✅ Konfiguration gespeichert:", path);
 });
 
 ipcMain.handle('loadAllData', (event, filePath) => {
     try {
-        if (!fs.existsSync(configPath)) return null;
-        return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        if (!fs.existsSync(filePath)) return null;
+        return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     } catch {}
 });
-ipcMain.handle('get-paths', () => ({
+
+ipcMain.handle('get-paths', () => {
+  return {
     configPath,
     temperaturePath,
-}));
+  };
+});
+ipcMain.handle('search-path', (event, name1, name2) => {
+  return searchPath(name1, name2);
+});

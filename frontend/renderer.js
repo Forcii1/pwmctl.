@@ -1,17 +1,24 @@
 import { openCurveEditor } from './curveeditor.js';
-const { configPath, cachePath } = await window.electronAPI.getPaths();
+const { configPath, temperaturePath: cachePath } = await window.electronAPI.getPaths();
 const curvesContainer = document.getElementById('curvesContainer');
 const addCurveBtn = document.getElementById('addCurveBtn');
-let curveIdCounter = 1;
+const { loadAllData } = window.electronAPI;
 
 // ==================== FAN MANAGEMENT ====================
-window.addEventListener('DOMContentLoaded', async () => {
-    const savedData = await window.electronAPI.loadAllData(configPath);
+async function init() {
+    console.log(`Configpath: ${configPath}`);
+    const savedData = await loadAllData(configPath);
     await loadCurves(savedData);
-    //loadData();
     await createFanButtons("it87", "it86", "Fans", savedData);
-    
-});
+}
+
+if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', () => {
+        init().catch(console.error);
+    }, { once: true });
+} else {
+    init().catch(console.error);
+}
 // ---------------- Fans erstellen ----------------
 async function createFanButtons(name1, name2, displayName, savedData = null) {
     const container = document.getElementById('buttonsContainer');
@@ -37,7 +44,6 @@ async function createFanButtons(name1, name2, displayName, savedData = null) {
     }
 
     const count = await getFanCount();
-
     for (let i = 1; i <= count; i++) {
         const fanData = savedData?.Fans?.[i] || null;
         createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, false, fanData);
@@ -512,7 +518,7 @@ const tempdisplay= document.getElementById('globalTempReading');
 
 async function updateTemps() {
     try {
-        const data = loadAllData(cachePath);
+        const data = await loadAllData(cachePath);
         tempdisplay.textContent = 'CPU: '+data?.cpu_temp+' °C        GPU: '+data?.gpu_temp+' °C';
     } catch {
         tempdisplay.textContent = 'CPU: --- °C        GPU: --- °C';
@@ -527,7 +533,7 @@ document.getElementById('globalApplyBtn').addEventListener('click', saveData);
 document.getElementById('globalResetBtn').addEventListener('click', async () => {
     document.getElementById('curvesContainer').innerHTML = '';
     document.getElementById('buttonsContainer').innerHTML = '';
-    const savedData = await window.electronAPI.loadAllData(configPath);
+    const savedData = await loadAllData(configPath);
     await loadCurves(savedData);
     await createFanButtons("it87", "it86", "Fans", savedData);
 });
@@ -586,19 +592,15 @@ function markSaveError() {
 }
 
 //nvidia helper functiom
-function getNvidiaFan(){
+async function getNvidiaFan(){
     try {
-        const data = loadAllData(cachePath);
+        const data = await loadAllData(cachePath);
         return data?.gpu_fan_percent;
     } catch {
         return 0;
     }
 }
-function getFanCount(){
-    try {
-        const data = loadAllData(cachePath);
+async function getFanCount(){
+        const data = await loadAllData(cachePath);
         return data?.fan_count;
-    } catch {
-        return 0;
-    }
 }
