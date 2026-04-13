@@ -1,11 +1,12 @@
 import { openCurveEditor } from './curveeditor.js';
+const { configPath, cachePath } = await window.electronAPI.getPaths();
 const curvesContainer = document.getElementById('curvesContainer');
 const addCurveBtn = document.getElementById('addCurveBtn');
 let curveIdCounter = 1;
 
 // ==================== FAN MANAGEMENT ====================
 window.addEventListener('DOMContentLoaded', async () => {
-    const savedData = await window.electronAPI.loadAllData();
+    const savedData = await window.electronAPI.loadAllData(configPath);
     await loadCurves(savedData);
     //loadData();
     await createFanButtons("it87", "it86", "Fans", savedData);
@@ -35,7 +36,7 @@ async function createFanButtons(name1, name2, displayName, savedData = null) {
         gpuFanFile = "NVIDIA GPU";
     }
 
-    const count = await window.electronAPI.getFanCount(hwmonPath);
+    const count = await getFanCount();
 
     for (let i = 1; i <= count; i++) {
         const fanData = savedData?.Fans?.[i] || null;
@@ -161,7 +162,7 @@ function createFanUI(container, fanName, fanFile, isNvidia, savedData = null) {
     async function updateSpeed() {
         try {
             const speed = isNvidia && fanFile === "NVIDIA GPU"
-                ? await window.electronAPI.getNvidiaFan()
+                ? await getNvidiaFan()
                 : await window.electronAPI.getFanSpeed(fanFile);
             speedLabel.textContent = speed + (isNvidia ? '%' : ' RPM');
         } catch {
@@ -445,7 +446,7 @@ function collectAllData() {
 async function saveData() {
     try {
         const data = collectAllData();
-        await window.electronAPI.saveAllData(data);
+        await window.electronAPI.saveAllData(configPath,data);
         markSaved();
     } catch (err) {
         console.error('Save failed:', err);
@@ -507,12 +508,26 @@ function updatename(curve,newname){
 }
 
 // ==================== GLOBAL ACTION BAR ====================
+const tempdisplay= document.getElementById('globalTempReading');
+
+async function updateTemps() {
+    try {
+        const data = loadAllData(cachePath);
+        tempdisplay.textContent = 'CPU: '+data?.cpu_temp+' °C        GPU: '+data?.gpu_temp+' °C';
+    } catch {
+        tempdisplay.textContent = 'CPU: --- °C        GPU: --- °C';
+    }
+}
+
+updateTemps();
+setInterval(updateTemps, 1000);
+
 document.getElementById('globalApplyBtn').addEventListener('click', saveData);
 
 document.getElementById('globalResetBtn').addEventListener('click', async () => {
     document.getElementById('curvesContainer').innerHTML = '';
     document.getElementById('buttonsContainer').innerHTML = '';
-    const savedData = await window.electronAPI.loadAllData();
+    const savedData = await window.electronAPI.loadAllData(configPath);
     await loadCurves(savedData);
     await createFanButtons("it87", "it86", "Fans", savedData);
 });
@@ -568,4 +583,22 @@ function markSaveError() {
             saveStatus.classList.remove('error');
         }
     }, 2500);
+}
+
+//nvidia helper functiom
+function getNvidiaFan(){
+    try {
+        const data = loadAllData(cachePath);
+        return data?.gpu_fan_percent;
+    } catch {
+        return 0;
+    }
+}
+function getFanCount(){
+    try {
+        const data = loadAllData(cachePath);
+        return data?.fan_count;
+    } catch {
+        return 0;
+    }
 }

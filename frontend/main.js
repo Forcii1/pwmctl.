@@ -4,6 +4,8 @@ const fs = require('fs');
 const { execSync, spawn } = require('child_process');
 const os = require("os");
 const configPath = path.join(os.homedir(), ".config", "pwmctl.conf");
+const temperaturePath = path.join(os.homedir(), ".cache", "pwmctl-status.json");
+
 
 let tray = null;
 let backendProcess = null;
@@ -87,18 +89,6 @@ app.on('before-quit', () => {
     }
 });
 
-// --- IPC: HWMon Fan Count ---
-ipcMain.handle('get-fan-count', (event, dirPath) => {
-    try {
-        const files = fs.readdirSync(dirPath);
-        const count = files.filter(f => /^fan\d+(_input)?$/.test(f)).length;
-        return count;
-    } catch (err) {
-        console.error('[Main] Error reading directory:', err);
-        return 0;
-    }
-});
-
 // --- IPC: HWMon Fan Speed ---
 ipcMain.handle('get-speed', async (event, filePath) => {
     try {
@@ -110,29 +100,20 @@ ipcMain.handle('get-speed', async (event, filePath) => {
     }
 });
 
-// --- IPC: NVIDIA Fan ---
-function getNvidiaFan() {
-    try {
-        const scriptPath = path.join(__dirname, 'scripts', 'getnvidiafan');
-        const out = execSync(scriptPath, { encoding: 'utf8' });
-        return parseInt(out.trim(), 10);
-    } catch (err) {
-        console.error("[Main] Error reading NVIDIA fan:", err);
-        return 0;
-    }
-}
-ipcMain.handle('get-nvidia-fan', () => getNvidiaFan());
-
 // Speichern
-ipcMain.handle('saveAllData', (event, data) => {
+ipcMain.handle('saveAllData', (event, configpath,data) => {
     if (!data) return console.error("❌ saveAllData: no data received!");
     fs.writeFileSync(configPath, JSON.stringify(data, null, 4), 'utf-8');
     console.log("✅ Konfiguration gespeichert:", configPath);
 });
 
-ipcMain.handle('loadAllData', () => {
+ipcMain.handle('loadAllData', (event, filePath) => {
     try {
         if (!fs.existsSync(configPath)) return null;
         return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     } catch {}
 });
+ipcMain.handle('get-paths', () => ({
+    configPath,
+    temperaturePath,
+}));

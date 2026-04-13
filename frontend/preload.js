@@ -33,15 +33,12 @@ function searchPath(name1, name2 = "") {
 
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  getFanCount: (dirPath) => {
-    return ipcRenderer.invoke('get-fan-count', dirPath);
-  },
   searchPath,
   getFanSpeed: (filePath) => {
     return ipcRenderer.invoke('get-speed', filePath);
   },
-  getNvidiaFan: () => ipcRenderer.invoke('get-nvidia-fan'),
-  saveAllData: (data) => ipcRenderer.invoke('saveAllData', data),
-  loadAllData: () => ipcRenderer.invoke('loadAllData')
+  saveAllData: (path,data) => ipcRenderer.invoke('saveAllData', data),
+  loadAllData: (path) => ipcRenderer.invoke('loadAllData'),
+  getPaths: () => ipcRenderer.invoke('get-paths'),
 });
 

@@ -42,8 +42,7 @@ body::-webkit-scrollbar {
   border-bottom: 3px solid #333;
 }
 
-.logo,
-h1 {
+.logo, h1 {
   margin: 0;
   font-size: 2rem;
   color: var(--primary-color);
@@ -113,6 +112,15 @@ h1 {
 
 #saveStatus.unsaved {
   color: #ffb347;
+}
+#globalTempReading{
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--primary-color);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 /* ========== Inhaltsabstände ========== */
