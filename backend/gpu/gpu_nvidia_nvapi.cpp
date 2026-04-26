@@ -1,4 +1,6 @@
 #include "gpu_nvidia_nvapi.hpp"
+#include <cstdint>
+#include <iostream>
 
 
 constexpr uint32_t NVAPI_INITIALIZE_ID = 0x0150E828;

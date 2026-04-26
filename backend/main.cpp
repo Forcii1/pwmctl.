@@ -1,9 +1,9 @@
-#include <chrono>
+
+#include <csignal>
+#include <iostream>
 #include <string>
 #include <thread>
 #include "json.hpp"
-#include <csignal>
-#include <atomic>
 
 
 #include "gpu/gpu_amd.hpp"
@@ -11,8 +11,7 @@
 #include "socket/socket_utils.hpp"
 #include "utility/hwmon_utils.hpp"
 
-#include <memory>
-#include <iostream>
+
 using json = nlohmann::json;
 
 std::atomic<bool> running(true);

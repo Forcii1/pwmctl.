@@ -44,7 +44,7 @@ bool send_command(const std::string& path, int value) {
     } else if (path.starts_with("NVIDIA")) {
         // NVIDIA-FAN
         if (value < 30 || value > 100) {
-            std::cerr << "Ungültiger NVIDIA-FAN-Wert: " << value << "\n";
+            std::cerr << "Invalid NVIDIA-FAN-Value: " << value << "\n";
             return false;
         }
         size_t pos = path.find(' ');

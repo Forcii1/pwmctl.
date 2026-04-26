@@ -1,7 +1,4 @@
 #include <dlfcn.h>
-#include <cstdint>
-#include <cstring>
-#include <iostream>
 
 struct NvidiaNvApiStats {
     bool available = false;

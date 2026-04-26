@@ -1,4 +1,4 @@
-#include "../nvml.h"
+#include "nvidia/nvml.h"
 #include <iostream>
 #include <fstream>
 #include <string>
