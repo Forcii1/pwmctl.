@@ -24,7 +24,6 @@ async function createFanButtons(name1, name2, displayName, savedData = null) {
     const container = document.getElementById('buttonsContainer');
     if (!container) return console.error("buttonsContainer not found!");
 
-
     container.innerHTML = '';
 
     const hwmonPath = await window.electronAPI.searchPath(name1, name2);
@@ -34,6 +33,7 @@ async function createFanButtons(name1, name2, displayName, savedData = null) {
 
     let gpuFanFile = null;
     let isNvidia = false;
+
     const gpupath = await window.electronAPI.searchPath("amdgpu");
     if (gpupath !== "NONE") {
         gpuFanFile = gpupath + "/fan1_target";
@@ -43,21 +43,34 @@ async function createFanButtons(name1, name2, displayName, savedData = null) {
     }
 
     const count = await getFanCount();
+
     if (hwmonPath !== "NONE") {
         for (let i = 1; i <= count; i++) {
             const fanData = savedData?.Fans?.[i] || null;
-
-            createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, false, fanData);
+            createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, false, fanData, i - 1);
         }
     }
 
-    const gpuFanData = savedData?.Gpus?.[0]|| null;
+    const cacheData = await loadAllData(cachePath);
+    const gpuFanPercents = cacheData?.gpu_fan_percent;
+    const gpuFanCount = Array.isArray(gpuFanPercents) ? gpuFanPercents.length : 1;
 
-    createFanUI(container, "GPU Fan", gpuFanFile, isNvidia, gpuFanData);
+    for (let i = 0; i < gpuFanCount; i++) {
+        const gpuFanData = savedData?.Gpus?.[i] || null;
+
+        createFanUI(
+            container,
+            gpuFanCount > 1 ? `GPU Fan ${i + 1}` : "GPU Fan",
+            gpuFanFile,
+            isNvidia,
+            gpuFanData,
+            i
+        );
+    }
 }
 
 //LOADING
-function createFanUI(container, fanName, fanFile, isNvidia, savedData = null) {
+function createFanUI(container, fanName, fanFile, isNvidia, savedData = null, fanIndex = 0) {
     const fanContainer = document.createElement('div');
     fanContainer.classList.add('container');
 
@@ -169,10 +182,14 @@ function createFanUI(container, fanName, fanFile, isNvidia, savedData = null) {
 
     async function updateSpeed() {
         try {
-            const speed = isNvidia && fanFile === "NVIDIA GPU"
-                ? await getNvidiaFan()
-                : await window.electronAPI.getFanSpeed(fanFile);
-            speedLabel.textContent = speed + (isNvidia ? '%' : ' RPM');
+            if (fanFile === "NVIDIA GPU") {
+                const speeds = await getNvidiaFan();
+                const speed = Array.isArray(speeds) ? speeds[fanIndex] : speeds;
+                speedLabel.textContent = `${Math.round(speed ?? 0)}%`;
+            } else {
+                const speed = await window.electronAPI.getFanSpeed(fanFile);
+                speedLabel.textContent = `${speed} RPM`;
+            }
         } catch {
             speedLabel.textContent = '--- ' + (isNvidia ? '%' : 'RPM');
         }
@@ -209,27 +226,26 @@ async function loadCurves(savedData) {
 
 
 // ==================== CURVE MANAGEMENT ====================
-curvesContainer.style.display = 'flex';
-curvesContainer.style.flexWrap = 'wrap';
-curvesContainer.style.gap = '10px';
-curvesContainer.style.alignItems = 'flex-start';
 
 function drawMiniCurve(canvas, points) {
     if (!points && canvas?.dataset?.points) {
-        try { points = JSON.parse(canvas.dataset.points); } catch { points = [{ x: 0, y: 0 }]; }
+        try { points = JSON.parse(canvas.dataset.points); }
+        catch { points = [{ x: 0, y: 0 }]; }
     }
+
     points = points || [{ x: 0, y: 0 }];
 
     const dpr = window.devicePixelRatio || 1;
-    const width = canvas.width;
-    const height = canvas.height;
 
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
+    const rect = canvas.getBoundingClientRect();
+    const width = rect.width || 200;
+    const height = rect.height || 100;
+
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+
     const ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     ctx.clearRect(0, 0, width, height);
 
@@ -237,9 +253,11 @@ function drawMiniCurve(canvas, points) {
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(points[0].x / 100 * width, height - points[0].y / 255 * height);
+
     for (let i = 1; i < points.length; i++) {
         ctx.lineTo(points[i].x / 100 * width, height - points[i].y / 255 * height);
     }
+
     ctx.stroke();
 
     points.forEach(p => {
@@ -399,7 +417,7 @@ addCurveBtn.addEventListener('click', () => {
 // ==================== STORAGE ====================
 function collectAllData() {
     const data = { Fans: {}, Gpus: {}, Curves: {} };
-
+    let igpu =0;
     // --- Fans ---
     const fanContainers = document.querySelectorAll('#buttonsContainer .container');
     fanContainers.forEach((fanContainer, idx) => {
@@ -415,7 +433,7 @@ function collectAllData() {
 
 
         const fanData = { name: fanName, enabled, value: val, curve: curveinput.value};
-        if (isGpu) data.Gpus[0] = fanData;
+        if (isGpu){ data.Gpus[igpu] = fanData;igpu=igpu+1;}
         else data.Fans[idx+1] = fanData;
     });
 
@@ -516,20 +534,191 @@ function updatename(curve,newname){
 }
 
 // ==================== GLOBAL ACTION BAR ====================
-const tempdisplay= document.getElementById('globalTempDisplay');
+const tempdisplay = document.getElementById('globalTempDisplay');
+const sensorOverview = document.getElementById('sensorOverview');
+const tempCPU = document.getElementById('tempCPU');
+const tempGPU = document.getElementById('tempGPU');
+
+const sensorGroups = [
+    {
+        title: "Temperatures",
+        items: [
+            ["cpu_temp", "CPU"],
+            ["gpu_core_temp", "GPU Core"],
+            ["gpu_hotspot_temp", "GPU Hotspot"],
+            ["gpu_vram_temp", "VRAM"]
+        ]
+    },
+    {
+        title: "GPU",
+        items: [
+            ["gpu_core_clock", "Core Clock"],
+            ["gpu_mem_clock", "Memory Clock"],
+            ["gpu_power_w", "Power"],
+            ["gpu_volt_mv", "Voltage"],
+            ["gpu_vram_used", "VRAM Used"]//,
+            //["gpu_vram_total", "VRAM Percentage"]
+        ]
+    },
+    {
+        title: "Fans",
+        items: [
+            ["gpu_fans", "GPU Fans"]
+        ]
+    }
+];
+
+const sensorUnits = {
+    cpu_temp: "°C",
+    gpu_core_temp: "°C",
+    gpu_hotspot_temp: "°C",
+    gpu_vram_temp: "°C",
+
+    gpu_core_clock: "MHz",
+    gpu_mem_clock: "MHz",
+    gpu_power_w: "W",
+    gpu_volt_mv: "mV",
+    gpu_vram_used: "GB",
+    //gpu_vram_total: "%",
+
+    gpu_fan_percent: "%",
+    gpu_fan_rpm: "RPM"
+};
+
+function formatSensorValue(key, value, data = null) {
+    if (value === undefined || value === null) return "---";
+
+    const unit = sensorUnits[key] || "";
+
+    if (key === "gpu_vram_used") {
+        const total = data?.gpu_vram_total;
+
+        if (typeof total === "number" && total > 0) {
+            const percent = (value / total) * 100;
+            return `${value.toFixed(2)} / ${total.toFixed(2)} GB (${Math.round(percent)}%)`;
+        }
+    }
+
+    if (typeof value === "number") {
+        const formatted = key.includes("vram_used")
+            ? value.toFixed(2)
+            : Math.round(value);
+
+        return `${formatted}${unit ? " " + unit : ""}`;
+    }
+
+    return String(value);
+}
+
+function createSensorCard(key, label, data) {
+    // GPU Fans als einzelne normale Sensor-Cards
+    if (key === "gpu_fans") {
+        const fragment = document.createDocumentFragment();
+
+        const percent = data?.gpu_fan_percent || [];
+        const rpm = data?.gpu_fan_rpm || [];
+        const maxFans = Math.max(percent.length, rpm.length);
+
+        for (let i = 0; i < maxFans; i++) {
+            const card = document.createElement("div");
+            card.className = "sensor-card";
+
+            const labelEl = document.createElement("div");
+            labelEl.className = "sensor-label";
+            labelEl.textContent = `GPU Fan ${i + 1}`;
+
+            const valueEl = document.createElement("div");
+            valueEl.className = "sensor-value";
+
+            const p = percent[i];
+            const r = rpm[i];
+
+            const pText = Number.isFinite(p) ? `${Math.round(p)} %` : "--- %";
+            const rText = Number.isFinite(r) ? `${Math.round(r)} RPM` : "--- RPM";
+
+            valueEl.textContent = `${pText} | ${rText}`;
+
+            card.append(labelEl, valueEl);
+            fragment.appendChild(card);
+        }
+
+        return fragment;
+    }
+
+    const card = document.createElement("div");
+    card.className = "sensor-card";
+
+    const labelEl = document.createElement("div");
+    labelEl.className = "sensor-label";
+    labelEl.textContent = label;
+
+    const valueEl = document.createElement("div");
+    valueEl.className = "sensor-value";
+    valueEl.textContent = formatSensorValue(key, data?.[key], data);
+
+    card.append(labelEl, valueEl);
+    return card;
+}
+
+function createSensorGroup(group, data) {
+    const groupEl = document.createElement("div");
+    groupEl.className = "sensor-group";
+
+    const titleEl = document.createElement("div");
+    titleEl.className = "sensor-group-title";
+    titleEl.textContent = group.title;
+
+    const gridEl = document.createElement("div");
+    gridEl.className = "sensor-group-grid";
+
+    group.items
+        .filter(([key]) => data?.[key] !== undefined)
+        .map(([key, label]) => createSensorCard(key, label, data))
+        .forEach(card => gridEl.appendChild(card));
+
+    groupEl.append(titleEl, gridEl);
+    return groupEl;
+}
+
+function renderSensorOverview(data) {
+    if (!sensorOverview) return;
+    const extendedData = {
+        ...data,    
+        gpu_fans: {
+            percent: data?.gpu_fan_percent,
+            rpm: data?.gpu_fan_rpm
+        }
+    };
+    sensorOverview.innerHTML = "";
+
+    if (!data) return;
+
+    sensorGroups
+        .map(group => createSensorGroup(group, extendedData))
+        .forEach(groupEl => sensorOverview.appendChild(groupEl));
+}
 
 async function updateTemps() {
-  try {
-    const data = await loadAllData(cachePath);
-    tempCPU.textContent = 'CPU ' + data?.cpu_temp + ' °C';
-    tempGPU.textContent = 'GPU ' + data?.gpu_temp + ' °C';
-  } catch {
-    tempCPU.textContent = 'CPU --- °C';
-    tempGPU.textContent = 'GPU --- °C';
-  }
+    try {
+        const data = await loadAllData(cachePath);
+        renderSensorOverview(data);
+
+        tempCPU.textContent = 'CPU ' + formatSensorValue("cpu_temp", data?.cpu_temp);
+        tempGPU.textContent = 'GPU ' + formatSensorValue("gpu_core_temp", data?.gpu_core_temp);
+
+    } catch (err) {
+        console.error("updateTemps failed:", err);
+
+        renderSensorOverview(null);
+
+        tempCPU.textContent = 'CPU --- °C';
+        tempGPU.textContent = 'GPU --- °C';
+    }
 }
+
 updateTemps();
 setInterval(updateTemps, 1000);
+
 
 document.getElementById('globalApplyBtn').addEventListener('click', saveData);
 

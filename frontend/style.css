@@ -10,6 +10,10 @@
   --font-main: "Inter", sans-serif;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 /* ========== Allgemeines Layout ========== */
 body {
   font-family: var(--font-main);
@@ -33,6 +37,7 @@ body::-webkit-scrollbar {
   z-index: 20;
 
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
@@ -42,7 +47,8 @@ body::-webkit-scrollbar {
   border-bottom: 3px solid #333;
 }
 
-.logo, h1 {
+.logo,
+h1 {
   margin: 0;
   font-size: 2rem;
   color: var(--primary-color);
@@ -52,9 +58,12 @@ body::-webkit-scrollbar {
   padding-bottom: 0;
 }
 
+/* ========== Global Action Bar ========== */
 #globalActionBar {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
   margin-left: auto;
 }
 
@@ -67,20 +76,13 @@ body::-webkit-scrollbar {
 }
 
 #globalApplyBtn {
-  background: #00bcd4;
+  background: var(--primary-color);
   color: #000;
 }
 
 #globalResetBtn {
   background: #444;
   color: #fff;
-}
-
-#globalActionBar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: auto;
 }
 
 #saveStatus {
@@ -92,7 +94,9 @@ body::-webkit-scrollbar {
 
 #globalApplyBtn.unsaved {
   position: relative;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 0 10px rgba(0,188,212,0.35);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 10px rgba(0, 188, 212, 0.35);
 }
 
 #globalApplyBtn.unsaved::after {
@@ -113,9 +117,11 @@ body::-webkit-scrollbar {
 #saveStatus.unsaved {
   color: #ffb347;
 }
+
 /* ========== Global Temp Display ========== */
 #globalTempDisplay {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   align-items: center;
 }
@@ -130,6 +136,7 @@ body::-webkit-scrollbar {
   color: #b8c7d1;
   white-space: nowrap;
 }
+
 /* ========== Inhaltsabstände ========== */
 h2,
 #buttonsContainer,
@@ -141,16 +148,6 @@ h2,
 h2 {
   margin-top: 16px;
   margin-bottom: 10px;
-}
-
-/* ========== Container ========== */
-.container,
-.curve-container {
-  background: transparent;
-  box-shadow: var(--shadow);
-  border-radius: var(--container-radius);
-  margin-bottom: 12px;
-  overflow: hidden;
 }
 
 /* ========== Typografie ========== */
@@ -190,17 +187,34 @@ select {
   color: #fff;
   border-radius: var(--border-radius);
   font-size: 0.9rem;
+  max-width: 100%;
 }
 
 input[type="range"] {
   accent-color: var(--primary-color);
 }
 
-/* ========== Fan Header ========== */
+/* ========== Fan Cards ========== */
+#buttonsContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.container {
+  min-width: 0;
+  background: transparent;
+  box-shadow: var(--shadow);
+  border-radius: var(--container-radius);
+  overflow: hidden;
+}
+
 .fan-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+
   padding: 8px 12px;
   background: rgba(0, 188, 212, 0.08);
   border-radius: var(--container-radius) var(--container-radius) 0 0;
@@ -212,7 +226,7 @@ input[type="range"] {
   color: #fff;
   font-weight: 700;
   font-size: 0.95rem;
-  max-width: 120px;
+  max-width: min(160px, 100%);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -227,7 +241,7 @@ input[type="range"] {
   padding: 2px 6px;
   border-radius: var(--border-radius);
   font-size: 0.95rem;
-  max-width: 140px;
+  max-width: 100%;
 }
 
 .fan-edit-btn {
@@ -282,7 +296,7 @@ input[type="range"] {
   color: #fff;
 }
 
-/* ========== Content ========== */
+/* ========== Fan Content ========== */
 .content {
   max-height: none;
   overflow: visible;
@@ -295,6 +309,7 @@ input[type="range"] {
   flex-direction: column;
   gap: 8px;
   margin-top: 10px;
+  min-width: 0;
 }
 
 .content label {
@@ -337,13 +352,21 @@ input[type="range"] {
   transform: rotate(45deg);
 }
 
-/* ========== Curve Container ========== */
+/* ========== Curve Cards ========== */
+#curvesContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
 .curve-container {
+  min-width: 0;
   background: var(--background-fade);
   border-radius: var(--container-radius);
   padding: 12px;
-  margin-bottom: 14px;
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -355,6 +378,7 @@ input[type="range"] {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .curve-container .header {
@@ -369,13 +393,21 @@ input[type="range"] {
 
 .curve-fans {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 3px;
+}
+
+.curve-sensors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
 }
 
 .curve-fan-btn,
 .curve-sensor-btn,
 .curve-action-btn {
+  min-width: 0;
   padding: 1px 4px;
   font-size: 0.7rem;
   border: 1px solid var(--primary-color);
@@ -391,15 +423,10 @@ input[type="range"] {
   color: #fff;
 }
 
-.curve-sensors {
-  display: flex;
-  gap: 3px;
-  margin-top: 4px;
-}
-
 /* ========== Mini-Canvas ========== */
 .curve-mini-canvas {
   width: 100%;
+  max-width: 100%;
   height: 100px;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.2);
@@ -425,14 +452,6 @@ input[type="range"] {
   color: var(--primary-color-hover);
 }
 
-/* ========== Fans oben responsiv ========== */
-#buttonsContainer {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
 /* ========== Curve Editor Overlay ========== */
 .curve-editor-overlay {
   position: fixed;
@@ -444,7 +463,6 @@ input[type="range"] {
   background: rgba(0, 0, 0, 0.6);
   z-index: 50;
   overflow-y: auto;
-  box-sizing: border-box;
 }
 
 .curve-editor-container {
@@ -454,6 +472,8 @@ input[type="range"] {
   align-items: flex-start;
   gap: 16px;
   margin: auto;
+  width: min(900px, 100%);
+  max-width: 100%;
   background: #171c24;
   border: 1px solid rgba(0, 188, 212, 0.28);
   border-radius: 12px;
@@ -465,9 +485,9 @@ input[type="range"] {
   background: #111722;
   border: 1px solid rgba(0, 188, 212, 0.45);
   border-radius: 8px;
-  max-width: 800px;
   width: 100%;
-  height: 400px;
+  max-width: 100%;
+  height: clamp(260px, 55vh, 400px);
   display: block;
 }
 
@@ -499,13 +519,12 @@ input[type="range"] {
 
 .curve-editor-side {
   width: 100%;
-  max-width: 800px;
+  max-width: 100%;
   background: #0f141c;
   border: 1px solid rgba(0, 188, 212, 0.18);
   border-radius: 10px;
   padding: 10px;
   color: #d9e3ea;
-  box-sizing: border-box;
 }
 
 .curve-editor-side-title {
@@ -517,7 +536,7 @@ input[type="range"] {
 
 .curve-editor-points-list {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px;
 }
 
@@ -559,7 +578,6 @@ input[type="range"] {
 .curve-editor-point-inputs input {
   width: 100%;
   min-width: 0;
-  box-sizing: border-box;
   padding: 3px 5px;
   font-size: 12px;
   border-radius: 5px;
@@ -590,4 +608,115 @@ input[type="range"] {
 
 .curve-editor-delete-point:hover {
   background: rgba(255, 90, 90, 0.32);
+}
+
+/* ========== Sensor Overview ========== */
+#sensorOverview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  margin: 14px 20px 6px 20px;
+  padding: 12px;
+
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(0, 188, 212, 0.16);
+  border-radius: var(--container-radius);
+  box-shadow: var(--shadow);
+}
+
+.sensor-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sensor-group-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.sensor-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.sensor-card {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 188, 212, 0.07);
+  border: 1px solid rgba(0, 188, 212, 0.18);
+  min-width: 0;
+}
+
+.sensor-label {
+  font-size: 0.75rem;
+  color: #9fb3bd;
+  margin-bottom: 4px;
+}
+
+.sensor-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f0f0f0;
+  white-space: normal;
+}
+
+/* ========== Mobile ========== */
+@media (max-width: 700px) {
+  #topRow {
+    align-items: flex-start;
+  }
+
+  .logo,
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  #globalActionBar,
+  #globalTempDisplay {
+    width: 100%;
+  }
+
+  #globalTempDisplay span {
+    flex: 1 1 120px;
+    text-align: center;
+  }
+
+  h2,
+  #buttonsContainer,
+  #curvesContainer,
+  #sensorOverview {
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  #buttonsContainer,
+  #curvesContainer {
+    grid-template-columns: 1fr;
+  }
+
+  .curve-editor-overlay {
+    padding: 10px;
+  }
+
+  .curve-editor-container {
+    padding: 12px;
+  }
+
+  .curve-editor-points-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.curve-mini-canvas {
+  width: 100%;
+  max-width: 320px;   
+  height: 90px;
+  margin: 0 auto;    
 }
