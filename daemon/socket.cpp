@@ -77,18 +77,18 @@ bool set_nvidia(std::string cmd){
 
     if (cmd.rfind("SET NVIDIA FAN ", 0) == 0) {
         std::istringstream iss(cmd);
+
         std::string set, vendor, fan_str;
         int fan_id, percent;
 
-        iss >> set >> vendor >> fan_str >> fan_id >> percent;
-
         if (!(iss >> set >> vendor >> fan_str >> fan_id >> percent)) {
             std::cerr << "Invalid command\n";
+            return false;
         }
 
         if (percent < 30 || percent > 100) {
             std::cerr << "Ungültiger FAN-Wert.\n";
-            return 1;
+            return false;
         }
 
         std::string nvcmd =
@@ -117,17 +117,16 @@ bool set_nvidia_nvml(std::string cmd) {
 
         std::string set, vendor, fan_str;
         int fan_id, percent;
-        iss >> set >> vendor >> fan_str >> fan_id >> percent;
 
         if (!(iss >> set >> vendor >> fan_str >> fan_id >> percent)) {
             std::cerr << "Invalid command\n";
+            return false;
         }
 
         if (percent < 0 || percent > 100) {
             std::cerr << "Ungültiger Wert (0–100)\n";
             return false;
         }
-
         nvmlReturn_t result = nvmlDeviceSetFanSpeed_v2(nvdevice, fan_id, percent);
         if (result != NVML_SUCCESS) {
             std::cerr << "SetFanSpeed failed: " << nvmlErrorString(result) << "\n";

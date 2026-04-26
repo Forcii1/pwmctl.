@@ -196,13 +196,13 @@ void NvidiaGpu::shutdown(){
 }
 
 unsigned int NvidiaGpu::get_fanslist(){
-    unsigned int gpu_count = 0;
-    nvmlReturn_t r= nvmlDeviceGetCount(&gpu_count);
+    unsigned int fan_count = 0;
+    nvmlReturn_t r= nvmlDeviceGetNumFans(device,&fan_count);
     if (r != NVML_SUCCESS) {
         std::cerr << "nvmlDeviceGetCount failed: " << nvmlErrorString(r) << "\n";
         return 0;
     }
-    return gpu_count;
+    return fan_count;
 }
 
 int NvidiaGpu::power_w(){
