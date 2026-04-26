@@ -1,11 +1,18 @@
-# ==== CONFIGURATION ====
 CXX          := g++
-CXXFLAGS     := -g -Wall -std=c++17
+CXXFLAGS     := -g -Wall -std=c++20
 TARGET       := pwmctl
 SOCKET       := pwmctld
-SRC_BACKEND  := backend/main.cpp
+
+SRC_BACKEND  := \
+	backend/main.cpp \
+	backend/socket/socket_utils.cpp \
+	backend/gpu/gpu_amd.cpp \
+	backend/gpu/gpu_nvidia.cpp \
+	backend/gpu/gpu_nvidia_nvapi.cpp
+
 SRC_SOCKET   := daemon/socket.cpp
-LIBS         := -lnvidia-ml
+LIBS         := -lnvidia-ml -ldl
+
 INSTALL_DIR  := /usr/local/bin
 SOCKET_DIR   := /var/run
 GROUP        := pwm
