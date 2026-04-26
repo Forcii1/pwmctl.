@@ -149,13 +149,17 @@ int main (){
     }
 
     //init PAtHS
-    const std::filesystem::path CPUtemppath = searchpath("k10temp")+"temp1_input";
     const std::filesystem::path CONFIGpath =std::filesystem::path(std::getenv("HOME")) / ".config" / "pwmctl.conf";
-
     const std::filesystem::path STATUSpath =
     std::filesystem::path(std::getenv("HOME")) / ".cache" / "pwmctl-status.json";
     std::filesystem::create_directories(STATUSpath.parent_path());
-    const std::filesystem::path fanpath=searchpath("it86","it87");
+
+    const auto CPUpath = searchpath("k10temp","k8temp", "coretemp");
+    const std::filesystem::path CPUtemppath=CPUpath+"temp1_input";
+    const auto fanpath = searchpath(
+    "it8","nct","w83","f718", "f71805f","asus","dell-smm","sch56"
+    );       
+
 
 
     json j=loadconf(CONFIGpath);

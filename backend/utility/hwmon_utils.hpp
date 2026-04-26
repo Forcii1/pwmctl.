@@ -3,21 +3,20 @@
 #include <fstream>
 #include <string>
 
-inline std::string searchpath(const std::string& name1, const std::string& name2 = "") {
+template<typename... Args>
+inline std::string searchpath(Args&&... names) {
     for (const auto& entry : std::filesystem::directory_iterator("/sys/class/hwmon")) {
         std::ifstream name_file(entry.path() / "name");
         if (name_file) {
             std::string cont;
             std::getline(name_file, cont);
-            if (cont.find(name1) != std::string::npos ||
-               (!name2.empty() && cont.find(name2) != std::string::npos)) {
+            if ((... || (cont.find(names) != std::string::npos))) {
                 return entry.path().string() + "/";
             }
         }
     }
     return "NONE";
 }
-
 inline int readfile(std::string path ){
     std::ifstream myfile;
     myfile.open(path);
