@@ -8,12 +8,15 @@
 <body>
   <div id="topRow">
     <h1 class="logo">pwmctl.</h1>
-    <div id="globalActionBar">
-      <h1 id="globalTempReading"></h1>
-      <span id="saveStatus"></span>
-      <button id="globalApplyBtn">✔ Apply</button>
-      <button id="globalResetBtn">↺ Load old config</button>
-    </div>
+      <div id="globalActionBar">
+        <div id="globalTempDisplay">
+          <span id="tempCPU">CPU --- °C</span>
+          <span id="tempGPU">GPU --- °C</span>
+        </div>
+        <span id="saveStatus"></span>
+        <button id="globalApplyBtn">✔ Apply</button>
+        <button id="globalResetBtn">↺ Load old config</button>
+      </div>
   </div>
 
   <h2 style="text-align: left;">Fans</h2>
@@ -23,8 +26,10 @@
     Curves
     <button id="addCurveBtn" style="font-size: 1.2rem; width: 25px; height: 25px; cursor: pointer;">+</button>
   </h2>
-
   <div id="curvesContainer"></div>
+
+  <h2 style="text-align: left;">Overclocking</h2>
+  <div id="overclockingContainer"></div>
 
   <script type="module" src="renderer.js"></script>
 </body>

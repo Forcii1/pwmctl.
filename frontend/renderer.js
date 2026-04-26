@@ -29,8 +29,7 @@ async function createFanButtons(name1, name2, displayName, savedData = null) {
 
     const hwmonPath = await window.electronAPI.searchPath(name1, name2);
     if (hwmonPath === "NONE") {
-        container.textContent = `Kein HWMon-Gerät für ${displayName} gefunden!`;
-        //return;
+        container.textContent = `Found no HWmon-Driver for ${displayName}!`;
     }
 
     let gpuFanFile = null;
@@ -44,9 +43,12 @@ async function createFanButtons(name1, name2, displayName, savedData = null) {
     }
 
     const count = await getFanCount();
-    for (let i = 1; i <= count; i++) {
-        const fanData = savedData?.Fans?.[i] || null;
-        createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, false, fanData);
+    if (hwmonPath !== "NONE") {
+        for (let i = 1; i <= count; i++) {
+            const fanData = savedData?.Fans?.[i] || null;
+
+            createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, false, fanData);
+        }
     }
 
     const gpuFanData = savedData?.Gpus?.[0]|| null;
@@ -514,17 +516,18 @@ function updatename(curve,newname){
 }
 
 // ==================== GLOBAL ACTION BAR ====================
-const tempdisplay= document.getElementById('globalTempReading');
+const tempdisplay= document.getElementById('globalTempDisplay');
 
 async function updateTemps() {
-    try {
-        const data = await loadAllData(cachePath);
-        tempdisplay.textContent = 'CPU: '+data?.cpu_temp+' °C        GPU: '+data?.gpu_temp+' °C';
-    } catch {
-        tempdisplay.textContent = 'CPU: --- °C        GPU: --- °C';
-    }
+  try {
+    const data = await loadAllData(cachePath);
+    tempCPU.textContent = 'CPU ' + data?.cpu_temp + ' °C';
+    tempGPU.textContent = 'GPU ' + data?.gpu_temp + ' °C';
+  } catch {
+    tempCPU.textContent = 'CPU --- °C';
+    tempGPU.textContent = 'GPU --- °C';
+  }
 }
-
 updateTemps();
 setInterval(updateTemps, 1000);
 

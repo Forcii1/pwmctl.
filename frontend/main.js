@@ -73,6 +73,15 @@ function createWindow() {
         if (startHidden) {
             win.hide();
         } else {
+            // Hauptbildschirm ermitteln und Fenster dort zentrieren
+            const { screen } = require('electron');
+            const primaryDisplay = screen.getPrimaryDisplay();
+            const { width, height } = primaryDisplay.workAreaSize;
+            const { width: winW, height: winH } = win.getBounds();
+            win.setPosition(
+                Math.round((width - winW) / 2),
+                Math.round((height - winH) / 2)
+            );
             win.show();
         }
     });
