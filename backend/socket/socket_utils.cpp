@@ -36,9 +36,11 @@ int init(){
 bool send_command(const std::string& path, int value) {
 
     std::string cmd;
-
-    if (path == "NVIDIASTATE") {
-        cmd = "SET NVIDIA STATE " + std::to_string(value);
+    if (path.starts_with( "NVIDIASTATE")) {
+        size_t pos = path.find(' ');
+        int fannum= path[pos+1] - '0';
+        
+        cmd = "SET NVIDIA STATE " + std::to_string(fannum)+ " "+ std::to_string(value);
     } else if (path.starts_with("NVIDIA")) {
         // NVIDIA-FAN
         if (value < 30 || value > 100) {
@@ -47,6 +49,7 @@ bool send_command(const std::string& path, int value) {
         }
         size_t pos = path.find(' ');
         int fannum= path[pos+1] - '0';
+        std::cout<<value<<std::endl;
         cmd = "SET NVIDIA FAN "+ std::to_string(fannum)+ " " + std::to_string(value);
     }else {
         // Mainboard-PWM

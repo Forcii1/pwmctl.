@@ -240,12 +240,12 @@ bool NvidiaGpu::setpwm(int pwm, int fan){
         return 1;
     }
     else if(pwm<30&&lastpwm[fan]>=30){
-        send_command("NVIDIASTATE",0);
+        send_command("NVIDIASTATE "+std::to_string(fan),0);
         lastpwm[fan]=pwm;
         return 1;
     }
     else if(lastpwm[fan]<30&&pwm>=30){
-        send_command("NVIDIASTATE",1);
+        send_command("NVIDIASTATE "+std::to_string(fan),1);
         lastpwm[fan]=pwm;
         return 1;
     }
@@ -257,5 +257,6 @@ bool NvidiaGpu::setpwm(int pwm, int fan){
         return 1;
     }
     send_command("NVIDIA "+std::to_string(fan), pwm);
+    lastpwm[fan]=pwm;
     return 1;
 }

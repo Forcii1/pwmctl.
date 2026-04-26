@@ -181,12 +181,15 @@ int main (){
         gputemp=gpu->core_temp(); //maybe control my temp
         cputemp=readfile(CPUtemppath)/1000;
 
-        for (unsigned int i=1;i <=fanCount;i++) {
+        for (unsigned int i=1;i <fanCount;i++) {
             int pwm=getpwm(fans,curves,std::to_string(i),gputemp,cputemp);
             setpwm(pwm,fanpath,std::to_string(i));
         }
-        int pwm= getpwm(gpus,curves,std::to_string(0),gputemp,cputemp);
-        gpu->setpwm(pwm);
+        for(unsigned int i=0;i <gpus.size();i++){
+            int pwm= getpwm(gpus,curves,std::to_string(i),gputemp,cputemp);
+            gpu->setpwm(pwm,i);
+        }
+        
         //safe temp and fan data
         json status;
         status["cpu_temp"] = cputemp;

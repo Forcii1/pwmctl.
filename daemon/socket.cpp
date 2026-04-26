@@ -132,21 +132,24 @@ bool set_nvidia_nvml(std::string cmd) {
             std::cerr << "SetFanSpeed failed: " << nvmlErrorString(result) << "\n";
             return false;
         }
-        std::cerr<<"Fanspeed set to: "<<percent<<std::endl;
     }
 
     if (cmd.rfind("SET NVIDIA STATE ", 0) == 0) {
-        int value;
-        try {
-            value = stoi(cmd.substr(17));
-        } catch (std::invalid_argument& e) {
-            std::cerr << "Ungültige Zahl\n";
+        std::istringstream iss(cmd);
+
+        std::string set, vendor, state;
+        int fan_id, value;
+
+        if (!(iss >> set >> vendor >> state >> fan_id >> value)) {
+            std::cerr << "Invalid command\n";
             return false;
         }
 
-        if(value==0){
-            nvmlDeviceSetDefaultFanSpeed_v2(nvdevice, 0);
+        if(value==0){   
+            nvmlDeviceSetDefaultFanSpeed_v2(nvdevice, fan_id);
+            std::cerr<<"Fan state set to: "<<fan_id<<"   ;   "<<value<<std::endl;
         }
+        
         return 0;
     }
     return true;
@@ -242,9 +245,10 @@ int main() {
 
             if(cmd.rfind("SET NVIDIA ", 0) == 0){
                 if(nvready){
-                    if(!set_nvidia_nvml(cmd)){
+                    /*if(!set_nvidia_nvml(cmd)){
                         set_nvidia(cmd);
-                    }
+                    }*/
+                    set_nvidia_nvml(cmd);
                 } else{
                     set_nvidia(cmd);
                 }
