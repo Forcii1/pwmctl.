@@ -37,14 +37,17 @@ bool send_command(const std::string& path, int value) {
 
     std::string cmd;
 
-    if (path == "NVIDIA") {
+    if (path.starts_with("NVIDIA")) {
     //    std::cout<<path<<std::endl;
         // NVIDIA-FAN
         if (value < 30 || value > 100) {
             std::cerr << "Ungültiger NVIDIA-FAN-Wert: " << value << "\n";
             return false;
         }
-        cmd = "SET NVIDIA FAN " + std::to_string(value);
+        size_t pos = path.find(' ');
+        char fannum= path[pos+1];
+
+        cmd = "SET NVIDIA FAN "+ std::to_string(fannum)+ " " + std::to_string(value);
     } else if (path == "NVIDIASTATE") {
        
         cmd = "SET NVIDIA STATE " + std::to_string(value);

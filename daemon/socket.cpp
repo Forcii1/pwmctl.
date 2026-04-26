@@ -73,28 +73,27 @@ bool set_pwm(std::string cmd){
     
 }
 
-
-
 bool set_nvidia(std::string cmd){
 
     if (cmd.rfind("SET NVIDIA FAN ", 0) == 0) {
-        std::string value = cmd.substr(15);
-        int speed;
-        try {
-            speed = std::stoi(value);
-        } catch (std::invalid_argument& e) {
-            std::cerr << "Ungültige Zahl\n";
-            return false;
+        std::istringstream iss(cmd);
+        std::string set, vendor, fan_str;
+        int fan_id, percent;
+
+        iss >> set >> vendor >> fan_str >> fan_id >> percent;
+
+        if (!(iss >> set >> vendor >> fan_str >> fan_id >> percent)) {
+            std::cerr << "Invalid command\n";
         }
 
-        if (speed < 30 || speed > 100) {
+        if (percent < 30 || percent > 100) {
             std::cerr << "Ungültiger FAN-Wert.\n";
             return 1;
         }
 
         std::string nvcmd =
-            "nvidia-settings --display="+display+" -a \"[fan:0]/GPUTargetFanSpeed="+
-            std::to_string(speed) + "\" > /dev/null 2>&1";
+            "nvidia-settings --display="+display+" -a \"[fan:"+std::to_string(fan_id)+"]/GPUTargetFanSpeed="+
+            std::to_string(percent) + "\" > /dev/null 2>&1";
 
             system(nvcmd.c_str());
             return 0;
@@ -114,12 +113,14 @@ bool set_nvidia(std::string cmd){
 
 bool set_nvidia_nvml(std::string cmd) {
     if (cmd.rfind("SET NVIDIA FAN ", 0) == 0) {
-        int percent;
-        try {
-            percent = stoi(cmd.substr(15));
-        } catch (std::invalid_argument& e) {
-            std::cerr << "Ungültige Zahl\n";
-            return false;
+        std::istringstream iss(cmd);
+
+        std::string set, vendor, fan_str;
+        int fan_id, percent;
+        iss >> set >> vendor >> fan_str >> fan_id >> percent;
+
+        if (!(iss >> set >> vendor >> fan_str >> fan_id >> percent)) {
+            std::cerr << "Invalid command\n";
         }
 
         if (percent < 0 || percent > 100) {
@@ -127,7 +128,7 @@ bool set_nvidia_nvml(std::string cmd) {
             return false;
         }
 
-        nvmlReturn_t result = nvmlDeviceSetFanSpeed_v2(nvdevice, 0, percent);
+        nvmlReturn_t result = nvmlDeviceSetFanSpeed_v2(nvdevice, fan_id, percent);
         if (result != NVML_SUCCESS) {
             std::cerr << "SetFanSpeed failed: " << nvmlErrorString(result) << "\n";
             return false;
