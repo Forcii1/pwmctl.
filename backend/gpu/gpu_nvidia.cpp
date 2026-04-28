@@ -5,6 +5,7 @@
 #include <vector>
 
 
+
 bool NvidiaGpu::init() {
     int max_tries=50;
     nvmlReturn_t result;
@@ -178,7 +179,6 @@ int NvidiaGpu::core_temp(){
     return nvmlCall('t');
 }
 
-
 int NvidiaGpu::vram_temp(){
     NvidiaNvApiStats stats = nvapi.read_stats();
     if (stats.available && stats.vram_temp) {
@@ -212,13 +212,16 @@ int NvidiaGpu::power_w(){
 float NvidiaGpu::used_vram_gb(){
     return nvmlCall('n');
 }
+
 float NvidiaGpu::total_vram_gb(){
     return nvmlCall('b');
 }
+
 int NvidiaGpu::core_clock(){
     return nvmlCall('c');
 
 }
+
 int NvidiaGpu::mem_clock(){
     return nvmlCall('m');
 
@@ -258,5 +261,31 @@ bool NvidiaGpu::setpwm(int pwm, int fan){
     }
     send_command("NVIDIA "+std::to_string(fan), pwm);
     lastpwm[fan]=pwm;
+    return 1;
+}
+
+bool NvidiaGpu::change_wattage(int watt) {
+    nvmlReturn_t r = nvmlDeviceSetPowerManagementLimit(device, watt * 1000);
+    if (r != NVML_SUCCESS) {
+        std::cerr << "SetPowerLimit failed: " << nvmlErrorString(r) << "\n";
+        return 0;
+    }
+    return 1;
+}
+
+bool NvidiaGpu::change_core_clock(int delta) {
+    nvmlReturn_t r = nvmlDeviceSetGpcClkVfOffset(device, delta);
+    if (r != NVML_SUCCESS) {
+        std::cerr << "SetCoreOffset failed: " << nvmlErrorString(r) << "\n";
+    }
+    return 1;
+}
+
+bool NvidiaGpu::change_mem_clock(int delta) {
+    nvmlReturn_t r = nvmlDeviceSetMemClkVfOffset(device, delta);
+    if (r != NVML_SUCCESS) {
+        std::cerr << "SetMemOffset failed: " << nvmlErrorString(r) << "\n";
+        return 0;
+    }
     return 1;
 }

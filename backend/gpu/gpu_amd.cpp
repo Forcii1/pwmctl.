@@ -71,10 +71,10 @@ int AmdGpu::core_temp(){
 int AmdGpu::hotspot_temp(){
     return readfile(temp_junc_path)/1000;
 }
+
 int AmdGpu::vram_temp(){
     return readfile(temp_mem_path)/1000;
 }
-
 
 std::vector<int>AmdGpu::fan_speed_rpm(){
     std::vector<int> speeds;
@@ -93,7 +93,6 @@ std::vector<int>AmdGpu::fan_speed_percent(){
     return speeds;
 }
 
-
 int AmdGpu::voltage_mv(){
     return readfile(voltage_path)*1000;
 }
@@ -101,9 +100,11 @@ int AmdGpu::voltage_mv(){
 int AmdGpu::power_w(){
     return readfile(power_path)/1000000;
 }
+
 float AmdGpu::used_vram_gb(){
     return (readfile(used_vram_path)/10000000.0)/100.0;
 }
+
 float AmdGpu::total_vram_gb(){
     return (readfile(total_vram_path)/10000000.0)/100.0;
 }
@@ -111,6 +112,7 @@ float AmdGpu::total_vram_gb(){
 int AmdGpu::core_clock(){
     return (readfile(core_clock_path)/1000000);
 }
+
 int AmdGpu::mem_clock(){
     return (readfile(mem_clock_path)/1000000);
 }

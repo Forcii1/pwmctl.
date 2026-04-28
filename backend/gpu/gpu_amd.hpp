@@ -21,9 +21,16 @@ class AmdGpu : public Gpu {
         virtual int mem_clock() override;
 
         void shutdown() override;
-
+        
         virtual bool setpwm(int pwm, int fan) override;
     
+
+        virtual bool change_wattage(int watt) override;
+        virtual bool change_core_clock(int hz) override;
+        virtual bool change_mem_clock(int hz) override;
+        virtual bool change_voltage(int volt) override;
+
+
     private:
         std::vector<int> get_fanslist();
         bool write_enable(int val);

@@ -25,6 +25,12 @@ class NvidiaGpu : public Gpu {
         void shutdown() override;
 
         virtual bool setpwm(int pwm,int fan) override;
+    
+            
+        virtual bool change_wattage(int watt) override;
+        virtual bool change_core_clock(int hz) override;
+        virtual bool change_mem_clock(int hz) override;
+
     private:
         nvmlDevice_t device;
         NvidiaNvApi nvapi;

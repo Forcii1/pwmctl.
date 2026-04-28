@@ -25,5 +25,10 @@ public:
 
     virtual bool setpwm(int pwm,int fan = -1) = 0;
 
+    virtual bool change_wattage(int watt) = 0;
+    virtual bool change_core_clock(int hz) = 0;
+    virtual bool change_mem_clock(int hz) = 0;
+    virtual bool change_voltage(int volt) { return -1; }
+
 };
 
