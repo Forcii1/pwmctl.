@@ -3,20 +3,43 @@ CXXFLAGS     := -g -Wall -std=c++20
 TARGET       := pwmctl
 SOCKET       := pwmctld
 
-SRC_BACKEND  := \
-	backend/main.cpp \
-	backend/socket/socket_utils.cpp \
-	backend/gpu/gpu_amd.cpp \
-	backend/gpu/gpu_nvidia.cpp \
-	backend/gpu/gpu_nvidia_nvapi.cpp
-
-SRC_SOCKET   := daemon/socket.cpp
-LIBS         := -lnvidia-ml -ldl
-
 INSTALL_DIR  := /usr/local/bin
 SOCKET_DIR   := /var/run
 GROUP        := pwm
 FRONTEND_DIR := frontend
+
+# ==== NVIDIA AUTO-DETECTION ====
+NVML_HEADER := $(wildcard /usr/include/nvidia/nvml.h /usr/include/nvml.h)
+NVML_LIB    := $(shell ldconfig -p 2>/dev/null | grep -q 'libnvidia-ml.so' && echo yes)
+
+HAVE_NVIDIA := 0
+
+ifneq ($(NVML_HEADER),)
+ifeq ($(NVML_LIB),yes)
+	HAVE_NVIDIA := 1
+endif
+endif
+
+# ==== SOURCES ====
+SRC_BACKEND  := \
+	backend/main.cpp \
+	backend/socket/socket_utils.cpp \
+	backend/gpu/gpu_amd.cpp
+
+SRC_SOCKET   := daemon/socket.cpp
+
+BACKEND_LIBS :=
+SOCKET_LIBS  :=
+
+ifeq ($(HAVE_NVIDIA),1)
+	SRC_BACKEND += \
+		backend/gpu/gpu_nvidia.cpp \
+		backend/gpu/gpu_nvidia_nvapi.cpp
+
+	CXXFLAGS += -DHAVE_NVIDIA
+	BACKEND_LIBS += -lnvidia-ml -ldl
+	SOCKET_LIBS += -lnvidia-ml -ldl
+endif
 
 # ==== BUILD RULES ====
 all: $(TARGET) $(SOCKET)
@@ -24,17 +47,18 @@ all: $(TARGET) $(SOCKET)
 # Backend
 $(TARGET): $(SRC_BACKEND)
 	@echo "Kompiliere Backend..."
-	@$(CXX) $(CXXFLAGS) $(SRC_BACKEND) -o $(TARGET) $(LIBS)
+	@echo "NVIDIA support: $(if $(filter 1,$(HAVE_NVIDIA)),yes,no)"
+	@$(CXX) $(CXXFLAGS) $(SRC_BACKEND) -o $(TARGET) $(BACKEND_LIBS)
 
 # Socket-Server
 $(SOCKET): $(SRC_SOCKET)
 	@echo "Kompiliere Socket-Server..."
-	@$(CXX) $(CXXFLAGS) $(SRC_SOCKET) -o $(SOCKET) $(LIBS)
+	@$(CXX) $(CXXFLAGS) $(SRC_SOCKET) -o $(SOCKET) $(SOCKET_LIBS)
 
 # ==== INSTALLATION ====
 install: all install-socket install-client install-frontend
-	@rm pwmctl
-	@rm pwmctld
+	@rm -f pwmctl
+	@rm -f pwmctld
 	@echo "Installation abgeschlossen."
 
 # Socket-Service installieren
@@ -49,7 +73,7 @@ install-socket:
 	@cp pwmctld.service /etc/systemd/system/
 	@systemctl daemon-reload
 	@systemctl enable pwmctld.service
-	@systemctl start pwmctld.service
+	@systemctl restart pwmctld.service
 	@echo "Socket-Server läuft als Root."
 
 # Client installieren
@@ -124,7 +148,7 @@ uninstall:
 	# --- Socket/Runtime Dateien ---
 	@rm -f $(SOCKET_DIR)/pwmctld.sock 2>/dev/null || true
 
-	# --- Config entfernen (optional, vorsichtig) ---
+	# --- Config entfernen ---
 	@if [ -n "$$SUDO_USER" ]; then \
 		rm -f /home/$$SUDO_USER/.config/pwmctl.conf; \
 	fi
@@ -138,6 +162,7 @@ uninstall:
 	@update-desktop-database /usr/local/share/applications 2>/dev/null || true
 
 	@echo "Deinstallation abgeschlossen."
+
 # ==== RUN / CLEAN ====
 run: $(TARGET)
 	@./$(TARGET)
@@ -148,5 +173,4 @@ clean:
 
 rebuild: clean all
 
-# ==== Optional: Rebuild + Install in einem Schritt ====
-rebuild-install: rebuild install
+rebuild-install: clean install

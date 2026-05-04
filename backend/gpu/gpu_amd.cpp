@@ -36,32 +36,31 @@ std::string AmdGpu::searchdrm(const std::string& vendor_id){
 
 bool AmdGpu::init(){
     path = searchpath("amdgpu");
-    drm_path=searchdrm("0x1002");
-    if (path.string()!="NONE"){
-        //init amd fan controll
+    drm_path = searchdrm("0x1002");
 
-        temp_edge_path = path.string()+"temp1_input";
-        temp_mem_path = path.string()+"temp3_input";
-        temp_junc_path = path.string()+"temp2_input";
-  
-        voltage_path = path.string()+"in0_input";
-        power_path = path.string()+"power1_average";
-
-
-        core_clock_path= path.string()+"freq1_input";
-        mem_clock_path= path.string()+"freq2_input";
-
-
-        fans=get_fanslist();
-        write_enable(1);
+    if (path.string() == "NONE" || drm_path.string() == "NONE") {
+        std::cerr << "No AMDGPU found!\n";
+        return false;
     }
-    if (drm_path.string()!="NONE"){
-        used_vram_path=drm_path.string()+"mem_info_vram_used";
-        total_vram_path=drm_path.string()+"mem_info_vram_total";
 
-    }
-    std::cerr << "No AMDGPU found!\n";
-    return path.string()!="NONE" && drm_path.string()!="NONE";
+    // init amd fan control
+    temp_edge_path = path.string() + "temp1_input";
+    temp_mem_path  = path.string() + "temp3_input";
+    temp_junc_path = path.string() + "temp2_input";
+
+    voltage_path = path.string() + "in0_input";
+    power_path   = path.string() + "power1_average";
+
+    core_clock_path = path.string() + "freq1_input";
+    mem_clock_path  = path.string() + "freq2_input";
+
+    used_vram_path  = drm_path.string() + "mem_info_vram_used";
+    total_vram_path = drm_path.string() + "mem_info_vram_total";
+
+    fans = get_fanslist();
+    write_enable(1);
+
+    return true;
 }
 
 int AmdGpu::core_temp(){
@@ -94,7 +93,7 @@ std::vector<int>AmdGpu::fan_speed_percent(){
 }
 
 int AmdGpu::voltage_mv(){
-    return readfile(voltage_path)*1000;
+    return readfile(voltage_path);
 }
 
 int AmdGpu::power_w(){
@@ -144,3 +143,18 @@ std::vector<int> AmdGpu::get_fanslist() {
     return result;
 }
 
+bool AmdGpu::change_wattage(int watt) {
+    return false;
+}
+
+bool AmdGpu::change_core_clock(int hz) {
+    return false;
+}
+
+bool AmdGpu::change_mem_clock(int hz) {
+    return false;
+}
+
+bool AmdGpu::change_voltage(int mv) {
+    return false;
+}

@@ -1,22 +1,33 @@
-
+#include <atomic>
+#include <chrono>
 #include <csignal>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <thread>
+#include <vector>
+
 #include "json.hpp"
 
-
+#include "gpu/gpu.hpp"
 #include "gpu/gpu_amd.hpp"
+
+#ifdef HAVE_NVIDIA
 #include "gpu/gpu_nvidia.hpp"
+#endif
+
 #include "socket/socket_utils.hpp"
 #include "utility/hwmon_utils.hpp"
-
 
 using json = nlohmann::json;
 
 std::atomic<bool> running(true);
 
 std::unique_ptr<Gpu> create_gpu() {
+#ifdef HAVE_NVIDIA
     {
         auto gpu = std::make_unique<NvidiaGpu>();
         if (gpu->init()) {
@@ -24,6 +35,7 @@ std::unique_ptr<Gpu> create_gpu() {
             return gpu;
         }
     }
+#endif
 
     {
         auto gpu = std::make_unique<AmdGpu>();
@@ -35,7 +47,6 @@ std::unique_ptr<Gpu> create_gpu() {
 
     return nullptr;
 }
-
 
 
 int calcpwm(int temps[], int pwms[], int temp, int length){

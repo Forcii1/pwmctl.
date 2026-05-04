@@ -17,7 +17,7 @@ inline std::string searchpath(Args&&... names) {
     }
     return "NONE";
 }
-inline int readfile(std::string path ){
+inline long long int readfile(std::string path ){
     std::ifstream myfile;
     myfile.open(path);
     std::string a="";
@@ -27,6 +27,6 @@ inline int readfile(std::string path ){
     if(a.length()==0){
         return -1;
     }
-    return (stoi(a));
+    return std::stoll(a);
 } 
 
