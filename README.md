@@ -1,4 +1,4 @@
-#pwmctl.
+**pwmctl.**
 Fan control for HWMon Mainbaords, AMDGPU and NvidiaGPU. 
 Overclocking for AMDGPU and NvidiaGPU.
 Monitor hardware and sensors
