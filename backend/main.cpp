@@ -145,7 +145,6 @@ void signal_handler(int sig) {
 }
 
 int main (){
-    
     //signal handler
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
@@ -159,9 +158,8 @@ int main (){
     }
 
     //init PAtHS
-    const std::filesystem::path CONFIGpath =std::filesystem::path(std::getenv("HOME")) / ".config" / "pwmctl.conf";
-    const std::filesystem::path STATUSpath =
-    std::filesystem::path(std::getenv("HOME")) / ".cache" / "pwmctl-status.json";
+    const std::filesystem::path CONFIGpath = std::filesystem::path(std::getenv("HOME")) / ".config" / "pwmctl.conf";
+    const std::filesystem::path STATUSpath = std::filesystem::path(std::getenv("HOME")) / ".cache" / "pwmctl-status.json";
     std::filesystem::create_directories(STATUSpath.parent_path());
 
     const auto CPUpath = searchpath("k10temp","k8temp", "coretemp");
@@ -169,7 +167,6 @@ int main (){
     const auto fanpath = searchpath(
     "it8","nct","w83","f718", "f71805f","asus","dell-smm","sch56"
     );       
-
 
 
     json j=loadconf(CONFIGpath);
@@ -192,12 +189,15 @@ int main (){
         cputemp=readfile(CPUtemppath)/1000;
 
         for (unsigned int i=1;i <fanCount;i++) {
-            int pwm=getpwm(fans,curves,std::to_string(i),gputemp,cputemp);
+            int pwm =getpwm(fans,curves,std::to_string(i),gputemp,cputemp);
+            pwm=int(pwm*2.55);
             setpwm(pwm,fanpath,std::to_string(i));
         }
         for(unsigned int i=0;i <gpus.size();i++){
-            int pwm= getpwm(gpus,curves,std::to_string(i),gputemp,cputemp);
-            gpu->setpwm(pwm,i);
+            //int pwm= getpwm(gpus,curves,std::to_string(i),gputemp,cputemp);
+
+            //gpu->setpwm(pwm,i);
+            gpu->setpwm2(gpus,curves,std::to_string(i),gputemp,cputemp,i);
         }
         
         //safe temp and fan data

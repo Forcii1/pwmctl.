@@ -4,6 +4,8 @@
 #include <iostream>
 #include <vector>
 
+#define AMDCONTROLPOINTS 5 
+
 bool AmdGpu::write_enable(int val){
     for (const auto& fan : fans) {
         send_command("SET "+path.string()+"pwm"+std::to_string(fan)+"_enable",val);
@@ -116,16 +118,92 @@ int AmdGpu::mem_clock(){
     return (readfile(mem_clock_path)/1000000);
 }
 
-bool AmdGpu::setpwm(int pwm, int select=-1){//Add Multifan Support later -> select
-    if(select<0){
-        for (const auto& fan : fans) {
+//DOES ONLY WORK WITH OLDER VERSIONS
+bool AmdGpu::setpwm(int pwm, int fan=-1){
+    old_pwm(pwm, fan);
+    return 0;
+}
+
+int get_list_points(int temps[], int temp, int length){
+    if (length<=AMDCONTROLPOINTS){
+        return length;
+    }else{
+        for(int i=0;i<length;i++){
+            if(temps[i]>temp){
+                return i+((length-i)>= 2 ? 2 : (length-i))+1;
+            }
+        }
+    }
+
+    return 1;
+}
+
+bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves, std::string num,int GPUTEMP, int CPUTEMP,int fan){
+
+    int temps_for_driver[AMDCONTROLPOINTS];
+    int pwms_for_driver[AMDCONTROLPOINTS];
+
+    static int old_pwms_for_driver[AMDCONTROLPOINTS] = {0};
+    static int oldpoint=0;
+
+    std::string curve= type[num]["curve"];
+    if(type[num]["enabled"]){
+        for(int i=0;i<AMDCONTROLPOINTS;i++){
+            pwms_for_driver[i]=type[num]["value"];
+            temps_for_driver[i]=15*i+30;
+        }
+    }else if(!type[num]["enabled"] && stoi(curve)>0){
+        std::vector<int> temps_vec = curves[curve]["temps"].get<std::vector<int>>();
+        std::vector<int> pwms_vec  = curves[curve]["pwms"].get<std::vector<int>>();
+        int* temps = temps_vec.data();
+        int point=0;
+        
+
+        switch (int(curves[curve]["source"])) {
+            case 0://cpu
+                point = get_list_points(temps, CPUTEMP, temps_vec.size());
+                break;
+            case 1://gpu
+                point = get_list_points(temps, GPUTEMP, temps_vec.size());
+                break;
+            case 2://higher
+                point = get_list_points(temps, CPUTEMP>GPUTEMP ? CPUTEMP : GPUTEMP, temps_vec.size());
+                break;
+        }
+
+        for(int i=0;i<AMDCONTROLPOINTS;i++){
+
+            pwms_for_driver[i]=int(pwms_vec.at(point-AMDCONTROLPOINTS+i <= 0 ? 0 : point-AMDCONTROLPOINTS+i));
+            temps_for_driver[i]=temps_vec.at(point-AMDCONTROLPOINTS+i <= 0 ? 0 : point-AMDCONTROLPOINTS+i);
+            temps_for_driver[i]= temps_for_driver[i] < 30 ? 30: temps_for_driver[i];
+        }
+
+        if((oldpoint-AMDCONTROLPOINTS<=point and oldpoint >= point)){
+            memcpy(old_pwms_for_driver, pwms_for_driver, sizeof(pwms_for_driver));
+        }
+        oldpoint=point;
+        
+    }
+    if((memcmp(pwms_for_driver, old_pwms_for_driver, sizeof(pwms_for_driver)) != 0)){
+        send_command_amdgpu(path.string()+"device/gpu_od/fan_ctrl/fan_curve", pwms_for_driver,temps_for_driver, AMDCONTROLPOINTS);
+        memcpy(old_pwms_for_driver, pwms_for_driver, sizeof(pwms_for_driver));
+
+    }
+    
+    return 0;
+}
+
+int AmdGpu::old_pwm(int pwm, int fan=-1){
+    if(fan>0){
+        for(int i=0;i<fan;i++){
             send_command(path.string()+"pwm"+std::to_string(fan), pwm);
         }
     }else{
-        send_command(path.string()+"pwm"+std::to_string(select), pwm);
+        send_command(path.string()+"pwm0", pwm);
     }
     return true;
 }
+
 
 void AmdGpu::shutdown(){
     write_enable(2);

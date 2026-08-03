@@ -78,3 +78,36 @@ bool send_command(const std::string& path, int value) {
     closesock(sock);
     return true;
 }
+
+bool send_command_amdgpu(const std::string& path, int pwms[],int temps[],int length) {
+
+    std::string cmd;
+
+    cmd = "AMDPWM:" + path+":"+std::to_string(length);
+    for(int i=0;i<length;i++){
+        cmd=cmd+":"+std::to_string(pwms[i])+":"+std::to_string(temps[i]);
+    }
+
+    int sock=init();
+    if(!sock){
+        std::cerr << "Socket Connection not possible!\n";
+        return 0;
+    }
+
+
+    cmd += "\n";
+    ssize_t total_sent = 0;
+    ssize_t len = cmd.size();
+    const char* data = cmd.c_str();
+    while (total_sent < len) {
+        ssize_t n = write(sock, data + total_sent, len - total_sent);
+        if (n <= 0) {
+            perror("write");
+            closesock(sock);
+            return false;
+        }
+        total_sent += n;
+    }
+    closesock(sock);
+    return true;
+}

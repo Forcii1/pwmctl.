@@ -11,5 +11,6 @@ private:
     const std::string SOCKET_PATH= "/var/run/pwmctld.sock";
 };*/
 bool send_command(const std::string& path, int value);
+bool send_command_amdgpu(const std::string& path, int pwms[],int temps[],int points);
 int init();
 void closesock();

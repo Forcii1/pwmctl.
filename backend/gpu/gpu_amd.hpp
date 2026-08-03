@@ -23,6 +23,7 @@ class AmdGpu : public Gpu {
         void shutdown() override;
         
         virtual bool setpwm(int pwm, int fan) override;
+        virtual bool setpwm2(nlohmann::json& type,nlohmann::json& curves, std::string num,int GPUTEMP, int CPUTEMP,int fan = -1) override;
     
 
         virtual bool change_wattage(int watt) override;
@@ -55,5 +56,8 @@ class AmdGpu : public Gpu {
 
         std::filesystem::path core_clock_path;
         std::filesystem::path mem_clock_path;
+
+        int old_pwm(int pwm, int val);
+        int new_pwm(int pwm, int val);
 
 };

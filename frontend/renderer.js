@@ -4,6 +4,43 @@ const curvesContainer = document.getElementById('curvesContainer');
 const addCurveBtn = document.getElementById('addCurveBtn');
 const { loadAllData } = window.electronAPI;
 
+const FAN_PERCENT_MIN = 0;
+const FAN_PERCENT_MAX = 100;
+
+function clampPercent(value) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return FAN_PERCENT_MIN;
+
+    return Math.min(
+        FAN_PERCENT_MAX,
+        Math.max(FAN_PERCENT_MIN, Math.round(numericValue))
+    );
+}
+
+function normalizeStoredPercent(value) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return FAN_PERCENT_MIN;
+
+    // Alte Konfigurationen konnten noch PWM-Rohwerte bis 255 enthalten.
+    // Eindeutig erkennbare Altwerte werden beim Laden einmalig in Prozent umgerechnet.
+    if (numericValue > FAN_PERCENT_MAX && numericValue <= 255) {
+        return clampPercent((numericValue / 255) * 100);
+    }
+
+    return clampPercent(numericValue);
+}
+
+function normalizeCurvePoints(points) {
+    if (!Array.isArray(points) || points.length === 0) {
+        return [{ x: 0, y: 0 }];
+    }
+
+    return points.map(point => ({
+        x: Number.isFinite(Number(point?.x)) ? Number(point.x) : 0,
+        y: normalizeStoredPercent(point?.y)
+    }));
+}
+
 // ==================== FAN MANAGEMENT ====================
 async function init() {
     console.log(`Configpath: ${configPath}`);
@@ -62,7 +99,7 @@ async function createFanButtons(name1, name2, displayName, savedData = null) {
             container,
             gpuFanCount > 1 ? `GPU Fan ${i + 1}` : "GPU Fan",
             gpuFanFile,
-            isNvidia,
+            true,
             gpuFanData,
             i
         );
@@ -70,7 +107,7 @@ async function createFanButtons(name1, name2, displayName, savedData = null) {
 }
 
 //LOADING
-function createFanUI(container, fanName, fanFile, isNvidia, savedData = null, fanIndex = 0) {
+function createFanUI(container, fanName, fanFile, isGpu, savedData = null, fanIndex = 0) {
     const fanContainer = document.createElement('div');
     fanContainer.classList.add('container');
 
@@ -102,7 +139,7 @@ function createFanUI(container, fanName, fanFile, isNvidia, savedData = null, fa
 
     const speedLabel = document.createElement('span');
     speedLabel.classList.add('fan-rpm');
-    speedLabel.textContent = '--- ' + (isNvidia ? '%' : 'RPM');
+    speedLabel.textContent = '--- ' + (isGpu ? '%' : 'RPM');
 
     header.append(nameSpan, nameInput, speedLabel);
     fanContainer.appendChild(header);
@@ -124,12 +161,13 @@ function createFanUI(container, fanName, fanFile, isNvidia, savedData = null, fa
     pwmCheckbox.checked = savedData?.enabled || false;
 
     const pwmvalLabel = document.createElement('label');
-    pwmvalLabel.textContent = 'PWM value ';
+    pwmvalLabel.textContent = 'Fan speed (%)';
     const pwmInput = document.createElement('input');
     pwmInput.type = 'range';
-    pwmInput.min = '0';
-    pwmInput.max = '255';
-    pwmInput.value = savedData?.value || 0;
+    pwmInput.min = String(FAN_PERCENT_MIN);
+    pwmInput.max = String(FAN_PERCENT_MAX);
+    pwmInput.step = '1';
+    pwmInput.value = normalizeStoredPercent(savedData?.value);
     pwmInput.disabled = !pwmCheckbox.checked;
     pwmInput.style.opacity = pwmCheckbox.checked ? '1' : '0.5';
 
@@ -154,7 +192,7 @@ function createFanUI(container, fanName, fanFile, isNvidia, savedData = null, fa
 
 
     const pwmValueLabel = document.createElement('span');
-    pwmValueLabel.textContent = pwmInput.value;
+    pwmValueLabel.textContent = `${pwmInput.value} %`;
 
     /*const applyBtn = document.createElement('button');
     applyBtn.textContent = '✔';
@@ -167,7 +205,7 @@ function createFanUI(container, fanName, fanFile, isNvidia, savedData = null, fa
     });
 
     pwmInput.addEventListener('input', () => {
-        if (pwmCheckbox.checked) pwmValueLabel.textContent = pwmInput.value;
+        if (pwmCheckbox.checked) pwmValueLabel.textContent = `${pwmInput.value} %`;
     });
 
     /*applyBtn.addEventListener('click', async () => {
@@ -182,16 +220,16 @@ function createFanUI(container, fanName, fanFile, isNvidia, savedData = null, fa
 
     async function updateSpeed() {
         try {
-            if (fanFile === "NVIDIA GPU") {
-                const speeds = await getNvidiaFan();
+            if (isGpu) {
+                const speeds = await getGpuFanPercent();
                 const speed = Array.isArray(speeds) ? speeds[fanIndex] : speeds;
-                speedLabel.textContent = `${Math.round(speed ?? 0)}%`;
+                speedLabel.textContent = `${Math.round(speed ?? 0)} %`;
             } else {
                 const speed = await window.electronAPI.getFanSpeed(fanFile);
                 speedLabel.textContent = `${speed} RPM`;
             }
         } catch {
-            speedLabel.textContent = '--- ' + (isNvidia ? '%' : 'RPM');
+            speedLabel.textContent = '--- ' + (isGpu ? '%' : 'RPM');
         }
     }
 
@@ -212,7 +250,7 @@ async function loadCurves(savedData) {
         });
         // Punkte
         const miniCanvas = curveEl.querySelector('.curve-mini-canvas');
-        const points = temps.map((t, i) => ({ x: t, y: pwms[i] }));
+        const points = normalizeCurvePoints(temps.map((t, i) => ({ x: t, y: pwms[i] })));
         miniCanvas.dataset.points = JSON.stringify(points);
         drawMiniCurve(miniCanvas, points);
         // Fans
@@ -233,7 +271,7 @@ function drawMiniCurve(canvas, points) {
         catch { points = [{ x: 0, y: 0 }]; }
     }
 
-    points = points || [{ x: 0, y: 0 }];
+    points = normalizeCurvePoints(points);
 
     const dpr = window.devicePixelRatio || 1;
 
@@ -252,10 +290,10 @@ function drawMiniCurve(canvas, points) {
     ctx.strokeStyle = '#00bcd4';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(points[0].x / 100 * width, height - points[0].y / 255 * height);
+    ctx.moveTo(points[0].x / 100 * width, height - points[0].y / FAN_PERCENT_MAX * height);
 
     for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(points[i].x / 100 * width, height - points[i].y / 255 * height);
+        ctx.lineTo(points[i].x / 100 * width, height - points[i].y / FAN_PERCENT_MAX * height);
     }
 
     ctx.stroke();
@@ -263,13 +301,15 @@ function drawMiniCurve(canvas, points) {
     points.forEach(p => {
         ctx.fillStyle = '#00bcd4';
         ctx.beginPath();
-        ctx.arc(p.x / 100 * width, height - p.y / 255 * height, 4, 0, 2 * Math.PI);
+        ctx.arc(p.x / 100 * width, height - p.y / FAN_PERCENT_MAX * height, 4, 0, 2 * Math.PI);
         ctx.fill();
     });
 }
 
 // --- CURVE ELEMENT ERSTELLEN ---
 function createCurveElement(fromdata,name, id = null, points = [{ x: 0, y: 0 }]) {
+    points = normalizeCurvePoints(points);
+
     const curveContainer = document.createElement('div');
     curveContainer.className = 'curve-container';
 
@@ -361,7 +401,7 @@ function createCurveElement(fromdata,name, id = null, points = [{ x: 0, y: 0 }])
     copyBtn.addEventListener('click', () => {
         const miniCanvas = curveContainer.querySelector('.curve-mini-canvas');
         let points = [];
-        try { points = JSON.parse(miniCanvas.dataset.points); } catch { points = [{ x: 0, y: 0 }]; }
+        try { points = normalizeCurvePoints(JSON.parse(miniCanvas.dataset.points)); } catch { points = [{ x: 0, y: 0 }]; }
 
         const name = "Copy of "+curveContainer.querySelector('.curve-title')?.textContent ?? 'Curve';
         const newCurve = createCurveElement(false, name, null, JSON.parse(JSON.stringify(points)));
@@ -391,17 +431,19 @@ function createCurveElement(fromdata,name, id = null, points = [{ x: 0, y: 0 }])
         let loadedPoints = [];
         if (miniCanvas.dataset.points) {
             try {
-                loadedPoints = JSON.parse(miniCanvas.dataset.points);
+                loadedPoints = normalizeCurvePoints(JSON.parse(miniCanvas.dataset.points));
             } catch {
                 loadedPoints = [{ x:0, y:0 }];
             }
         }
         openCurveEditor(loadedPoints, miniCanvas, updatedPoints => {
-            // Speichere die geänderten Punkte zurück ins Mini-Canvas
-            miniCanvas.dataset.points = JSON.stringify(updatedPoints);
-            drawMiniCurve(miniCanvas, updatedPoints);
+            const normalizedPoints = normalizeCurvePoints(updatedPoints);
+
+            // Speichere die geänderten Prozentwerte zurück ins Mini-Canvas
+            miniCanvas.dataset.points = JSON.stringify(normalizedPoints);
+            drawMiniCurve(miniCanvas, normalizedPoints);
             // Aktualisiere lokale points-Variable
-            points = updatedPoints;
+            points = normalizedPoints;
         });
     });
     
@@ -425,7 +467,7 @@ function collectAllData() {
         const fanName = nameInput?.textContent || `Fan${idx}`;
 
         const pwmInput= fanContainer.querySelector('input[type="range"]');
-        const val = parseInt(pwmInput.value, 10);
+        const val = clampPercent(pwmInput.value);
         const pwmCheckbox = fanContainer.querySelector('input[type="checkbox"]');
         const enabled = pwmCheckbox?.checked ?? false;
         const isGpu = fanContainer.querySelector('.fan-name-span')?.textContent.includes('GPU');
@@ -453,7 +495,7 @@ function collectAllData() {
         const miniCanvas = curveEl.querySelector('.curve-mini-canvas');
         let points = [];
         if (miniCanvas?.dataset.points) {
-            try { points = JSON.parse(miniCanvas.dataset.points); } catch { points = [{ x: 0, y: 0 }]; }
+            try { points = normalizeCurvePoints(JSON.parse(miniCanvas.dataset.points)); } catch { points = [{ x: 0, y: 0 }]; }
         }
 
         // Neue ID vergeben
@@ -461,7 +503,7 @@ function collectAllData() {
             Name,
             source,
             temps: points.map(p => Math.round(p.x)),
-            pwms: points.map(p => Math.round(p.y)),
+            pwms: points.map(p => clampPercent(p.y)),
         };
     });
 
@@ -784,7 +826,7 @@ function markSaveError() {
 }
 
 //nvidia helper functiom
-async function getNvidiaFan(){
+async function getGpuFanPercent(){
     try {
         const data = await loadAllData(cachePath);
         return data?.gpu_fan_percent;

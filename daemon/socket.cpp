@@ -1,4 +1,4 @@
-#include "nvidia/nvml.h"
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -14,9 +14,6 @@
 
 #define SOCKET_PATH "/var/run/pwmctld.sock"
 
-#ifdef HAVE_NVIDIA
-#include "nvidia/nvml.h"
-#endif
 
 #include <iostream>
 #include <fstream>
@@ -229,115 +226,6 @@ class NvidiaController {
         }
 };
 
-std::string display = getenv("DISPLAY") ? getenv("DISPLAY") : ":0";
-
-nvmlDevice_t nvdevice;
-bool set_nvidia(std::string cmd){
-
-    if (cmd.rfind("SET NVIDIA FAN ", 0) == 0) {
-        std::istringstream iss(cmd);
-
-        std::string set, vendor, fan_str;
-        int fan_id, percent;
-
-        if (!(iss >> set >> vendor >> fan_str >> fan_id >> percent)) {
-            std::cerr << "Invalid command\n";
-            return false;
-        }
-
-        if (percent < 30 || percent > 100) {
-            std::cerr << "Ungültiger FAN-Wert.\n";
-            return false;
-        }
-
-        std::string nvcmd =
-            "nvidia-settings --display="+display+" -a \"[fan:"+std::to_string(fan_id)+"]/GPUTargetFanSpeed="+
-            std::to_string(percent) + "\" > /dev/null 2>&1";
-
-            system(nvcmd.c_str());
-            return 0;
-    }
-
-    if (cmd.rfind("SET NVIDIA STATE ", 0) == 0) {
-        std::string value = cmd.substr(17);
-        std::string nvcmd =
-            "nvidia-settings --display="+display+" -a \"[gpu:0]/GPUFanControlState=" +
-            value+ "\" > /dev/null 2>&1";
-
-        system(nvcmd.c_str());
-        return 0;
-    }
-    return 1;
-}
-
-bool set_nvidia_nvml(std::string cmd) {
-    if (cmd.rfind("SET NVIDIA FAN ", 0) == 0) {
-        std::istringstream iss(cmd);
-
-        std::string set, vendor, fan_str;
-        int fan_id, percent;
-
-        if (!(iss >> set >> vendor >> fan_str >> fan_id >> percent)) {
-            std::cerr << "Invalid command\n";
-            return false;
-        }
-
-        if (percent < 0 || percent > 100) {
-            std::cerr << "Ungültiger Wert (0–100)\n";
-            return false;
-        }
-        nvmlReturn_t result = nvmlDeviceSetFanSpeed_v2(nvdevice, fan_id, percent);
-        if (result != NVML_SUCCESS) {
-            std::cerr << "SetFanSpeed failed: " << nvmlErrorString(result) << "\n";
-            return false;
-        }
-    }
-
-    if (cmd.rfind("SET NVIDIA STATE ", 0) == 0) {
-        std::istringstream iss(cmd);
-
-        std::string set, vendor, state;
-        int fan_id, value;
-
-        if (!(iss >> set >> vendor >> state >> fan_id >> value)) {
-            std::cerr << "Invalid command\n";
-            return false;
-        }
-
-        if(value==0){   
-            nvmlDeviceSetDefaultFanSpeed_v2(nvdevice, fan_id);
-            std::cerr<<"Fan state set to: "<<fan_id<<"   ;   "<<value<<std::endl;
-        }
-        
-        return 0;
-    }
-    return true;
-}
-
-bool nvml_init(){
-    nvmlReturn_t result;
-    nvmlDevice_t device;
-
-    result = nvmlInit();
-    if (NVML_SUCCESS != result) {
-        std::cerr << "NVML Init failed: " << nvmlErrorString(result) << "\n";
-        return false;
-    }
-
-    result = nvmlDeviceGetHandleByIndex(0, &device);
-    if (NVML_SUCCESS != result) {
-        std::cerr << "Failed to get device handle: " << nvmlErrorString(result) << "\n";
-        nvmlShutdown();
-        return false;
-    }
-    nvdevice=device;
-    return true;
-}
-
-void cleanupNVML() {
-    nvmlShutdown();
-}
-
 
 bool is_path_allowed(const std::string& path) {
     std::filesystem::path p(path);
@@ -394,6 +282,77 @@ bool set_pwm(std::string cmd){
     
 }
 
+bool set_amd_pwm(std::string cmd){
+    if (cmd.rfind("AMDPWM", 0) != 0) {
+        std::cerr << "Ungültiges Kommando.\n";
+        return 1;
+    }
+
+    size_t p1 = cmd.find(':');
+    size_t p2 = cmd.find(':', p1 + 1);
+    size_t p3 = cmd.find(':', p2 + 1);
+    
+
+
+    std::string path = cmd.substr(p1+1, p2-p1-1);
+    std::string length = cmd.substr(p2+1,p3-p2-1);
+
+    // Pfad validieren
+/*    if (!is_path_allowed(path)) {
+        std::cerr << "Pfad verboten: " << path << "\n";
+        return 1;
+    }
+*/
+    std::ofstream file(path);
+    if (!file) {
+        std::cerr << "Fehler beim Schreiben in " << path << "\n";
+        return 1;
+    } 
+    std::cout<<cmd<<std::endl;    
+    cmd=cmd.substr(p3+1,cmd.length());
+
+    for(int i=0;i<std::stoi(length);i++){
+        size_t p1 = cmd.find(':');
+        size_t p2 = cmd.find(':', p1 + 1);
+        std::string pwm  = cmd.substr(0, p1);
+        std::string temp = cmd.substr(p1+1, p2-p1-1);
+
+        file << (std::to_string(i)+" "+temp+" "+pwm);
+        file.flush();                     
+        if (!file) {
+            std::cerr << "Fehler beim Schreiben von Punkt " << i << "\n";
+            return true;
+        }
+
+        cmd = cmd.substr(p2+1, cmd.length());
+    }
+
+    // --- Zero-RPM-Reset vor dem finalen Commit --- Erstmal nur test, weil es sonst bugt!!
+    std::string zrpm_path = path.substr(0, path.find_last_of('/')) + "/fan_zero_rpm_enable";
+    std::cout << "DEBUG zrpm_path = [" << zrpm_path << "]\n";
+    std::ofstream zfile(zrpm_path);
+    if (!zfile) {
+        std::cerr << "Konnte " << zrpm_path << " nicht öffnen\n";
+        // kein hartes return hier, da fan_curve-Commit trotzdem versucht werden soll
+    } else {
+        zfile.open(zrpm_path);
+        zfile << "0"; 
+        zfile.flush();
+        zfile.close();
+    }
+
+    file << "c";
+    file.flush();
+    
+    if (!file) {
+        std::cerr << "Fehler beim Schreiben in " << path << "\n";
+        return true;
+    }
+
+    return 0;
+    
+}
+
 int main() {
     unlink(SOCKET_PATH);
 
@@ -414,7 +373,6 @@ int main() {
         return 1;
     }
 
-    // Rechte setzen
     struct group* grp = getgrnam("pwm");
     if (grp) {
         chown(SOCKET_PATH, 0, grp->gr_gid);
@@ -424,14 +382,13 @@ int main() {
     }
 
     std::cerr << "pwmctld socket runs: " << SOCKET_PATH << "\n";
-    
-    bool nvready=false;
-    if(nvml_init()) {
-        nvready=true;
-        std::cerr<<"NvidiaGPU found!\n";
+
+    NvidiaController nvidia;
+    if (nvidia.init()) {
+        std::cerr << "NvidiaGPU found!\n";
     }
-    
-    std::cerr<<"Daemon ready!\n";
+
+    std::cerr << "Daemon ready!\n";
 
     while (true) {
         int client = accept(server, nullptr, nullptr);
@@ -457,20 +414,18 @@ int main() {
             buffer.erase(0, pos + 1);
             if (cmd.empty()) continue;
 
-
-            if(cmd.rfind("SET NVIDIA ", 0) == 0){
-                if(nvready){
-                    set_nvidia_nvml(cmd);
-                } else{
-                    set_nvidia(cmd);
-                }
+            if (cmd.rfind("SET NVIDIA ", 0) == 0) {
+                nvidia.handle(cmd);
             }
-            else if(cmd.rfind("SET ", 0) == 0){
+            else if (cmd.rfind("SET ", 0) == 0) {
                 set_pwm(cmd);
             }
-            
+            else if (cmd.rfind("AMDPWM", 0) == 0) {
+                set_amd_pwm(cmd);
+            }
         }
         close(client);
     }
-    cleanupNVML();
+
+    nvidia.shutdown();
 }

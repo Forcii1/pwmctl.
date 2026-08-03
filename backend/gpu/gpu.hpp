@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
+#include "../json.hpp"
 
+using json = nlohmann::json;
 class Gpu {
 public:
     virtual ~Gpu() = default;
@@ -24,6 +26,8 @@ public:
     virtual void shutdown() = 0;
 
     virtual bool setpwm(int pwm,int fan = -1) = 0;
+
+    virtual bool setpwm2(nlohmann::json& type,nlohmann::json& curves, std::string num,int GPUTEMP, int CPUTEMP,int fan = -1) = 0;
 
     virtual bool change_wattage(int watt) = 0;
     virtual bool change_core_clock(int hz) = 0;
