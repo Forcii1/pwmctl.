@@ -303,29 +303,6 @@ bool set_amd_pwm(std::string cmd){
         return 1;
     }
 */
-    std::ofstream file(path);
-    if (!file) {
-        std::cerr << "Fehler beim Schreiben in " << path << "\n";
-        return 1;
-    } 
-    std::cout<<cmd<<std::endl;    
-    cmd=cmd.substr(p3+1,cmd.length());
-
-    for(int i=0;i<std::stoi(length);i++){
-        size_t p1 = cmd.find(':');
-        size_t p2 = cmd.find(':', p1 + 1);
-        std::string pwm  = cmd.substr(0, p1);
-        std::string temp = cmd.substr(p1+1, p2-p1-1);
-
-        file << (std::to_string(i)+" "+temp+" "+pwm);
-        file.flush();                     
-        if (!file) {
-            std::cerr << "Fehler beim Schreiben von Punkt " << i << "\n";
-            return true;
-        }
-
-        cmd = cmd.substr(p2+1, cmd.length());
-    }
 
     // --- Zero-RPM-Reset vor dem finalen Commit --- Erstmal nur test, weil es sonst bugt!!
     std::string zrpm_path = path.substr(0, path.find_last_of('/')) + "/fan_zero_rpm_enable";
@@ -335,17 +312,44 @@ bool set_amd_pwm(std::string cmd){
         std::cerr << "Konnte " << zrpm_path << " nicht öffnen\n";
         // kein hartes return hier, da fan_curve-Commit trotzdem versucht werden soll
     } else {
-        zfile.open(zrpm_path);
         zfile << "0"; 
         zfile.flush();
         zfile.close();
+    }
+
+
+    std::ofstream file(path);
+    if (!file) {
+        std::cerr << "Fehler beim Schreiben in " << path << "\n";
+        return 1;
+    } 
+    std::cout<<cmd<<std::endl;    
+    cmd=cmd.substr(p3+1,cmd.length());
+
+
+
+    
+    for(int i=0;i<std::stoi(length);i++){
+        size_t p1 = cmd.find(':');
+        size_t p2 = cmd.find(':', p1 + 1);
+        std::string pwm  = cmd.substr(0, p1);
+        std::string temp = cmd.substr(p1+1, p2-p1-1);
+
+        file << (std::to_string(i)+" "+temp+" "+pwm);
+        file.flush();                     
+        if (!file) {
+            std::cout << "Fehler beim Schreiben von Punkt " << i << "\n";
+            return true;
+        }
+
+        cmd = cmd.substr(p2+1, cmd.length());
     }
 
     file << "c";
     file.flush();
     
     if (!file) {
-        std::cerr << "Fehler beim Schreiben in " << path << "\n";
+        std::cout << "Fehler beim Schreiben in " << path << "\n";
         return true;
     }
 

@@ -1,5 +1,36 @@
 export function openCurveEditor(points, miniCanvas, onSave) {
     const MAX_POINTS = 20;
+    const FAN_PERCENT_MIN = 0;
+    const FAN_PERCENT_MAX = 100;
+
+    function clampPercent(value) {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) return FAN_PERCENT_MIN;
+
+        return Math.min(
+            FAN_PERCENT_MAX,
+            Math.max(FAN_PERCENT_MIN, Math.round(numericValue))
+        );
+    }
+
+    function normalizeStoredPercent(value) {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) return FAN_PERCENT_MIN;
+
+        // Alte PWM-Rohwerte bis 255 proportional in Prozent umrechnen.
+        if (numericValue > FAN_PERCENT_MAX && numericValue <= 255) {
+            return clampPercent((numericValue / 255) * FAN_PERCENT_MAX);
+        }
+
+        return clampPercent(numericValue);
+    }
+
+    points = Array.isArray(points) && points.length > 0
+        ? points.map(point => ({
+            ...point,
+            y: normalizeStoredPercent(point?.y)
+        }))
+        : [{ x: 0, y: 0 }];
 
     const overlay = document.createElement('div');
     overlay.className = 'curve-editor-overlay';
@@ -66,7 +97,7 @@ export function openCurveEditor(points, miniCanvas, onSave) {
         const idx = points.indexOf(point);
         if (idx === -1) return;
 
-        point.y = clamp(Math.round(point.y), 0, 255);
+        point.y = clampPercent(point.y);
 
         if (idx === 0) {
             point.x = 0;
@@ -124,13 +155,13 @@ export function openCurveEditor(points, miniCanvas, onSave) {
         ctx.fillStyle = '#ccc';
         ctx.font = '12px sans-serif';
         ctx.textAlign = 'right';
-        for (let p = 0; p <= 255; p += 25) {
-            const y = canvas.height - 40 - p / 255 * (canvas.height - 60);
+        for (let p = 0; p <= FAN_PERCENT_MAX; p += 10) {
+            const y = canvas.height - 40 - p / FAN_PERCENT_MAX * (canvas.height - 60);
             ctx.beginPath();
             ctx.moveTo(50, y);
             ctx.lineTo(canvas.width - 20, y);
             ctx.stroke();
-            ctx.fillText(p, 35, y + 4);
+            ctx.fillText(`${p}%`, 42, y + 4);
         }
         ctx.restore();
 
@@ -140,13 +171,13 @@ export function openCurveEditor(points, miniCanvas, onSave) {
             ctx.beginPath();
             ctx.moveTo(
                 50 + points[0].x / 100 * (canvas.width - 70),
-                canvas.height - 40 - points[0].y / 255 * (canvas.height - 60)
+                canvas.height - 40 - points[0].y / FAN_PERCENT_MAX * (canvas.height - 60)
             );
 
             for (let i = 1; i < points.length; i++) {
                 ctx.lineTo(
                     50 + points[i].x / 100 * (canvas.width - 70),
-                    canvas.height - 40 - points[i].y / 255 * (canvas.height - 60)
+                    canvas.height - 40 - points[i].y / FAN_PERCENT_MAX * (canvas.height - 60)
                 );
             }
             ctx.stroke();
@@ -157,7 +188,7 @@ export function openCurveEditor(points, miniCanvas, onSave) {
             ctx.beginPath();
             ctx.arc(
                 50 + p.x / 100 * (canvas.width - 70),
-                canvas.height - 40 - p.y / 255 * (canvas.height - 60),
+                canvas.height - 40 - p.y / FAN_PERCENT_MAX * (canvas.height - 60),
                 5,
                 0,
                 2 * Math.PI
@@ -197,10 +228,10 @@ export function openCurveEditor(points, miniCanvas, onSave) {
             const pwmInput = document.createElement('input');
             pwmInput.type = 'number';
             pwmInput.min = '0';
-            pwmInput.max = '255';
+            pwmInput.max = String(FAN_PERCENT_MAX);
             pwmInput.step = '1';
             pwmInput.value = Math.round(p.y);
-            pwmInput.title = 'PWM';
+            pwmInput.title = 'PWM (%)';
 
             inputs.appendChild(tempInput);
             inputs.appendChild(pwmInput);
@@ -228,7 +259,7 @@ export function openCurveEditor(points, miniCanvas, onSave) {
                 const oldY = p.y;
 
                 if (index !== 0) p.x = Number(tempInput.value);
-                p.y = Number(pwmInput.value);
+                p.y = clampPercent(pwmInput.value);
 
                 if (Number.isNaN(p.x)) p.x = oldX;
                 if (Number.isNaN(p.y)) p.y = oldY;
@@ -238,7 +269,7 @@ export function openCurveEditor(points, miniCanvas, onSave) {
 
                 selectedPoint = p;
                 activeEditor = null;
-                coordDisplay.textContent = `Temp: ${p.x.toFixed(0)}°C | PWM: ${p.y.toFixed(0)}`;
+                coordDisplay.textContent = `Temp: ${p.x.toFixed(0)}°C | PWM: ${p.y.toFixed(0)} %`;
 
                 drawCurve();
                 renderPointsList();
@@ -252,7 +283,7 @@ export function openCurveEditor(points, miniCanvas, onSave) {
                     e.stopPropagation();
                     selectedPoint = p;
                     activeEditor = p;
-                    coordDisplay.textContent = `Temp: ${p.x.toFixed(0)}°C | PWM: ${p.y.toFixed(0)}`;
+                    coordDisplay.textContent = `Temp: ${p.x.toFixed(0)}°C | PWM: ${p.y.toFixed(0)} %`;
                     drawCurve();
                 });
 
@@ -269,7 +300,7 @@ export function openCurveEditor(points, miniCanvas, onSave) {
 
             row.addEventListener('click', () => {
                 selectedPoint = p;
-                coordDisplay.textContent = `Temp: ${p.x.toFixed(0)}°C | PWM: ${p.y.toFixed(0)}`;
+                coordDisplay.textContent = `Temp: ${p.x.toFixed(0)}°C | PWM: ${p.y.toFixed(0)} %`;
                 drawCurve();
                 renderPointsList();
             });
@@ -297,10 +328,10 @@ export function openCurveEditor(points, miniCanvas, onSave) {
     canvas.addEventListener('mousedown', e => {
         const rect = canvas.getBoundingClientRect();
         let x = (e.clientX - rect.left - 50) / (canvas.width - 70) * 100;
-        let y = 255 - (e.clientY - rect.top - 20) / (canvas.height - 60) * 255;
+        let y = FAN_PERCENT_MAX - (e.clientY - rect.top - 20) / (canvas.height - 60) * FAN_PERCENT_MAX;
 
         x = clamp(x, 0, 100);
-        y = clamp(y, 0, 255);
+        y = clamp(y, FAN_PERCENT_MIN, FAN_PERCENT_MAX);
 
         if (e.button !== 0) return;
 
@@ -324,17 +355,17 @@ export function openCurveEditor(points, miniCanvas, onSave) {
                 y = Math.min(y, next.y);
             }
 
-            selectedPoint = { x: Math.round(x), y: Math.round(y) };
+            selectedPoint = { x: Math.round(x), y: clampPercent(y) };
             points.push(selectedPoint);
             points.sort((a, b) => a.x - b.x);
 
-            coordDisplay.textContent = `Temp: ${selectedPoint.x.toFixed(0)}°C | PWM: ${selectedPoint.y.toFixed(0)}`;
+            coordDisplay.textContent = `Temp: ${selectedPoint.x.toFixed(0)}°C | PWM: ${selectedPoint.y.toFixed(0)} %`;
             isDragging = true;
             refreshAll();
             return;
         }
 
-        coordDisplay.textContent = `Temp: ${selectedPoint.x.toFixed(0)}°C | PWM: ${selectedPoint.y.toFixed(0)}`;
+        coordDisplay.textContent = `Temp: ${selectedPoint.x.toFixed(0)}°C | PWM: ${selectedPoint.y.toFixed(0)} %`;
         isDragging = true;
         drawCurve();
         renderPointsList();
@@ -346,13 +377,13 @@ export function openCurveEditor(points, miniCanvas, onSave) {
 
         const rect = canvas.getBoundingClientRect();
         let newX = (e.clientX - rect.left - 50) / (canvas.width - 70) * 100;
-        let newY = 255 - (e.clientY - rect.top - 20) / (canvas.height - 60) * 255;
+        let newY = FAN_PERCENT_MAX - (e.clientY - rect.top - 20) / (canvas.height - 60) * FAN_PERCENT_MAX;
 
         selectedPoint.x = newX;
         selectedPoint.y = newY;
         constrainPoint(selectedPoint);
 
-        coordDisplay.textContent = `Temp: ${selectedPoint.x.toFixed(0)}°C | PWM: ${selectedPoint.y.toFixed(0)}`;
+        coordDisplay.textContent = `Temp: ${selectedPoint.x.toFixed(0)}°C | PWM: ${selectedPoint.y.toFixed(0)} %`;
         refreshAll();
     });
 
@@ -369,7 +400,7 @@ export function openCurveEditor(points, miniCanvas, onSave) {
 
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left - 50) / (canvas.width - 70) * 100;
-        const y = 255 - (e.clientY - rect.top - 20) / (canvas.height - 60) * 255;
+        const y = FAN_PERCENT_MAX - (e.clientY - rect.top - 20) / (canvas.height - 60) * FAN_PERCENT_MAX;
 
         const hit = points.reduce((best, p, idx) => {
             const dist = Math.hypot(p.x - x, p.y - y);
