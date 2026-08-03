@@ -144,7 +144,7 @@ bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves, std::string nu
     int pwms_for_driver[AMDCONTROLPOINTS];
 
     static int old_pwms_for_driver[AMDCONTROLPOINTS] = {0};
-    static int oldpoint=0;
+    //static int oldpoint=0;
 
     std::string curve= type[num]["curve"];
     if(type[num]["enabled"]){
@@ -174,14 +174,15 @@ bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves, std::string nu
         for(int i=0;i<AMDCONTROLPOINTS;i++){
 
             pwms_for_driver[i]=int(pwms_vec.at(point-AMDCONTROLPOINTS+i <= 0 ? 0 : point-AMDCONTROLPOINTS+i));
+            
             temps_for_driver[i]=temps_vec.at(point-AMDCONTROLPOINTS+i <= 0 ? 0 : point-AMDCONTROLPOINTS+i);
             temps_for_driver[i]= temps_for_driver[i] < 30 ? 30: temps_for_driver[i];
         }
 
-        if((oldpoint-AMDCONTROLPOINTS<=point and oldpoint >= point)){
+        /*if((oldpoint-AMDCONTROLPOINTS<=point and oldpoint >= point)){
             memcpy(old_pwms_for_driver, pwms_for_driver, sizeof(pwms_for_driver));
         }
-        oldpoint=point;
+        oldpoint=point;*/
         
     }
     if((memcmp(pwms_for_driver, old_pwms_for_driver, sizeof(pwms_for_driver)) != 0)){
