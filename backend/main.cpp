@@ -195,10 +195,10 @@ int main (){
             setpwm(pwm,fanpath,std::to_string(i));
         }
         for(unsigned int i=0;i <gpus.size();i++){
-            //int pwm= getpwm(gpus,curves,std::to_string(i),gputemp,cputemp);
+            int pwm= getpwm(gpus,curves,std::to_string(i),gputemp,cputemp);
 
             //gpu->setpwm(pwm,i);
-            gpu->setpwm2(gpus,curves,std::to_string(i),gputemp,cputemp,i);
+            gpu->setpwm2(gpus,curves,pwm,std::to_string(i),gputemp,cputemp,i);
         }
         
         //safe temp and fan data

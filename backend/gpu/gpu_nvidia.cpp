@@ -268,6 +268,44 @@ bool NvidiaGpu::setpwm(int pwm, int fan){
     return 1;
 }
 
+
+bool NvidiaGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves, int pwm,std::string num,int GPUTEMP, int CPUTEMP,int fan){
+    bool all=false;
+    static std::vector<int> lastpwm;
+    if (lastpwm.size() != fancount) {
+        lastpwm.assign(fancount, -1);
+    }
+    if(fan<0){
+        fan=0;
+        all=true;
+    }
+    
+    if(lastpwm[fan]<=30 && pwm<=30){
+        return 1;
+    }
+    else if(pwm<30&&lastpwm[fan]>=30){
+        send_command("NVIDIASTATE "+std::to_string(fan),0);
+        lastpwm[fan]=pwm;
+        return 1;
+    }
+    else if(lastpwm[fan]<30&&pwm>=30){
+        send_command("NVIDIASTATE "+std::to_string(fan),1);
+        lastpwm[fan]=pwm;
+        return 1;
+    }
+    if(all){
+        for (unsigned int select = 0; select < fancount; select++) {
+            send_command("NVIDIA "+std::to_string(select), pwm); //fix bug in deamon which only controls fan #0!
+            lastpwm[select]=pwm;
+        }
+        return 1;
+    }
+    send_command("NVIDIA "+std::to_string(fan), pwm);
+    lastpwm[fan]=pwm;
+    return 1;
+}
+
+
 bool NvidiaGpu::change_wattage(int watt) {
     nvmlReturn_t r = nvmlDeviceSetPowerManagementLimit(device, watt * 1000);
     if (r != NVML_SUCCESS) {

@@ -143,7 +143,7 @@ int get_list_points(int temps[], int temp, int length){
     return 1;
 }
 
-bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves, std::string num,int GPUTEMP, int CPUTEMP,int fan){
+bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves,int pwm, std::string num,int GPUTEMP, int CPUTEMP,int fan){
 
     int temps_for_driver[AMDCONTROLPOINTS];
     int pwms_for_driver[AMDCONTROLPOINTS];
@@ -166,6 +166,9 @@ bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves, std::string nu
         
 
         switch (int(curves[curve]["source"])) {
+            //If there is another temp source selected, there should be a "direct mode" as in the first "if-block"
+            //Otherwise the right curvepoints get selected but the card controls itself in the curve with the hotspot temp, so there would be a wrong output.
+            //This mode, altough it is complicated, is still left in because this is the "normal" usecase mode which most users would use. it is also the most efficent one because the curve register is only written when needed and the card can mostly control itself.
             case 0://cpu
                 point = get_list_points(temps, CPUTEMP, temps_vec.size());
                 break;

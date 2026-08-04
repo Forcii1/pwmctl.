@@ -27,6 +27,7 @@ class NvidiaGpu : public Gpu {
         void shutdown() override;
 
         virtual bool setpwm(int pwm,int fan) override;
+        virtual bool setpwm2(nlohmann::json& type,nlohmann::json& curves,int pwm, std::string num,int GPUTEMP, int CPUTEMP,int fan = -1) override;
     
             
         virtual bool change_wattage(int watt) override;

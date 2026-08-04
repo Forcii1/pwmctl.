@@ -28,7 +28,7 @@ public:
 
     virtual bool setpwm(int pwm,int fan = -1) = 0;
 
-    virtual bool setpwm2(nlohmann::json& type,nlohmann::json& curves, std::string num,int GPUTEMP, int CPUTEMP,int fan = -1) = 0;
+    virtual bool setpwm2(nlohmann::json& type,nlohmann::json& curves,int pwm, std::string num,int GPUTEMP, int CPUTEMP,int fan = -1) = 0;
 
     virtual bool change_wattage(int watt) = 0;
     virtual bool change_core_clock(int hz) = 0;
