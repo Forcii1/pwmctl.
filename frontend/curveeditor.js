@@ -2,6 +2,8 @@ export function openCurveEditor(points, miniCanvas, onSave) {
     const MAX_POINTS = 20;
     const FAN_PERCENT_MIN = 0;
     const FAN_PERCENT_MAX = 100;
+    const POINT_RADIUS = 7;
+    const POINT_HIT_RADIUS = 14;
 
     function clampPercent(value) {
         const numericValue = Number(value);
@@ -91,6 +93,75 @@ export function openCurveEditor(points, miniCanvas, onSave) {
 
     function clamp(v, min, max) {
         return Math.min(Math.max(v, min), max);
+    }
+
+    /**
+     * Rechnet die Mausposition aus CSS-Pixeln in die internen
+     * Pixelkoordinaten des Canvas um. Das verhindert einen Versatz,
+     * wenn das Canvas über CSS größer oder kleiner dargestellt wird.
+     */
+    function getCanvasMousePosition(event) {
+        const rect = canvas.getBoundingClientRect();
+
+        return {
+            x: (event.clientX - rect.left) * (canvas.width / rect.width),
+            y: (event.clientY - rect.top) * (canvas.height / rect.height)
+        };
+    }
+
+    /**
+     * Rechnet interne Canvas-Koordinaten in Temperatur und PWM um.
+     */
+    function canvasPositionToValues(canvasX, canvasY) {
+        return {
+            x: clamp(
+                (canvasX - 50) / (canvas.width - 70) * 100,
+                0,
+                100
+            ),
+            y: clamp(
+                FAN_PERCENT_MAX
+                    - (canvasY - 20) / (canvas.height - 60) * FAN_PERCENT_MAX,
+                FAN_PERCENT_MIN,
+                FAN_PERCENT_MAX
+            )
+        };
+    }
+
+    /**
+     * Rechnet einen Kurvenpunkt in interne Canvas-Koordinaten um.
+     */
+    function pointToCanvasPosition(point) {
+        return {
+            x: 50 + point.x / 100 * (canvas.width - 70),
+            y: canvas.height - 40
+                - point.y / FAN_PERCENT_MAX * (canvas.height - 60)
+        };
+    }
+
+    /**
+     * Sucht den nächsten Punkt innerhalb des Auswahlradius.
+     * Der Abstand wird in Canvas-Pixeln gemessen und ist deshalb
+     * unabhängig von Temperatur- und PWM-Skalierung.
+     */
+    function findPointAt(canvasX, canvasY, radius = POINT_HIT_RADIUS) {
+        let closestPoint = null;
+        let closestDistance = Infinity;
+
+        for (const point of points) {
+            const position = pointToCanvasPosition(point);
+            const distance = Math.hypot(
+                position.x - canvasX,
+                position.y - canvasY
+            );
+
+            if (distance <= radius && distance < closestDistance) {
+                closestPoint = point;
+                closestDistance = distance;
+            }
+        }
+
+        return closestPoint;
     }
 
     function constrainPoint(point) {
@@ -189,7 +260,7 @@ export function openCurveEditor(points, miniCanvas, onSave) {
             ctx.arc(
                 50 + p.x / 100 * (canvas.width - 70),
                 canvas.height - 40 - p.y / FAN_PERCENT_MAX * (canvas.height - 60),
-                5,
+                POINT_RADIUS,
                 0,
                 2 * Math.PI
             );
@@ -326,16 +397,21 @@ export function openCurveEditor(points, miniCanvas, onSave) {
     renderPointsList();
 
     canvas.addEventListener('mousedown', e => {
-        const rect = canvas.getBoundingClientRect();
-        let x = (e.clientX - rect.left - 50) / (canvas.width - 70) * 100;
-        let y = FAN_PERCENT_MAX - (e.clientY - rect.top - 20) / (canvas.height - 60) * FAN_PERCENT_MAX;
-
-        x = clamp(x, 0, 100);
-        y = clamp(y, FAN_PERCENT_MIN, FAN_PERCENT_MAX);
-
         if (e.button !== 0) return;
 
-        selectedPoint = points.find(p => Math.hypot(p.x - x, p.y - y) < 4);
+        const mousePosition = getCanvasMousePosition(e);
+        const values = canvasPositionToValues(
+            mousePosition.x,
+            mousePosition.y
+        );
+
+        let x = values.x;
+        let y = values.y;
+
+        selectedPoint = findPointAt(
+            mousePosition.x,
+            mousePosition.y
+        );
 
         if (!selectedPoint) {
             if (points.length >= MAX_POINTS) {
@@ -350,12 +426,17 @@ export function openCurveEditor(points, miniCanvas, onSave) {
                 x = Math.max(x, prev.x);
                 y = Math.max(y, prev.y);
             }
+
             if (next) {
                 x = Math.min(x, next.x);
                 y = Math.min(y, next.y);
             }
 
-            selectedPoint = { x: Math.round(x), y: clampPercent(y) };
+            selectedPoint = {
+                x: Math.round(x),
+                y: clampPercent(y)
+            };
+
             points.push(selectedPoint);
             points.sort((a, b) => a.x - b.x);
 
@@ -375,12 +456,14 @@ export function openCurveEditor(points, miniCanvas, onSave) {
         if (!selectedPoint || !isDragging) return;
         if (activeEditor) return;
 
-        const rect = canvas.getBoundingClientRect();
-        let newX = (e.clientX - rect.left - 50) / (canvas.width - 70) * 100;
-        let newY = FAN_PERCENT_MAX - (e.clientY - rect.top - 20) / (canvas.height - 60) * FAN_PERCENT_MAX;
+        const mousePosition = getCanvasMousePosition(e);
+        const values = canvasPositionToValues(
+            mousePosition.x,
+            mousePosition.y
+        );
 
-        selectedPoint.x = newX;
-        selectedPoint.y = newY;
+        selectedPoint.x = values.x;
+        selectedPoint.y = values.y;
         constrainPoint(selectedPoint);
 
         coordDisplay.textContent = `Temp: ${selectedPoint.x.toFixed(0)}°C | PWM: ${selectedPoint.y.toFixed(0)} %`;
@@ -398,20 +481,23 @@ export function openCurveEditor(points, miniCanvas, onSave) {
     canvas.addEventListener('contextmenu', e => {
         e.preventDefault();
 
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left - 50) / (canvas.width - 70) * 100;
-        const y = FAN_PERCENT_MAX - (e.clientY - rect.top - 20) / (canvas.height - 60) * FAN_PERCENT_MAX;
+        const mousePosition = getCanvasMousePosition(e);
+        const hitPoint = findPointAt(
+            mousePosition.x,
+            mousePosition.y
+        );
 
-        const hit = points.reduce((best, p, idx) => {
-            const dist = Math.hypot(p.x - x, p.y - y);
-            if (dist < 10 && (!best || dist < best.dist)) return { idx, dist };
-            return best;
-        }, null);
+        if (!hitPoint) return;
 
-        if (hit && hit.idx !== 0) {
-            const removed = points[hit.idx];
-            points.splice(hit.idx, 1);
-            if (selectedPoint === removed) selectedPoint = null;
+        const index = points.indexOf(hitPoint);
+
+        if (index > 0) {
+            points.splice(index, 1);
+
+            if (selectedPoint === hitPoint) {
+                selectedPoint = null;
+            }
+
             refreshAll();
         }
     });
