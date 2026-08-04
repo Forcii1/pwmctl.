@@ -175,6 +175,10 @@ int NvidiaGpu::hotspot_temp(){
     }
 }
 
+int NvidiaGpu::tempforpwmctl(){
+    return NvidiaGpu::core_temp();
+}
+
 int NvidiaGpu::core_temp(){
     return nvmlCall('t');
 }

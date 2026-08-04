@@ -185,7 +185,8 @@ int main (){
         std::size_t fanCount = fans.size();
         auto& gpus = j["Gpus"];
 
-        gputemp=gpu->core_temp(); //maybe control my temp
+        gputemp=gpu->tempforpwmctl();
+
         cputemp=readfile(CPUtemppath)/1000;
 
         for (unsigned int i=1;i <fanCount;i++) {
@@ -203,7 +204,7 @@ int main (){
         //safe temp and fan data
         json status;
         status["cpu_temp"] = cputemp;
-        status["gpu_core_temp"] = gputemp;
+        status["gpu_core_temp"] = gpu->core_temp();
         status["gpu_hotspot_temp"] = gpu->hotspot_temp();
         status["gpu_vram_temp"] = gpu->vram_temp();
 

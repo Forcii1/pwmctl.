@@ -79,7 +79,7 @@ bool send_command(const std::string& path, int value) {
     return true;
 }
 
-bool send_command_amdgpu(const std::string& path, int pwms[],int temps[],int length) {
+bool send_command_amdgpu(const std::string& path, int pwms[],int temps[],int length, int zrpm) {
 
     std::string cmd;
 
@@ -87,7 +87,8 @@ bool send_command_amdgpu(const std::string& path, int pwms[],int temps[],int len
     for(int i=0;i<length;i++){
         cmd=cmd+":"+std::to_string(pwms[i])+":"+std::to_string(temps[i]);
     }
-
+    cmd=cmd+":"+std::to_string(zrpm);
+    
     int sock=init();
     if(!sock){
         std::cerr << "Socket Connection not possible!\n";

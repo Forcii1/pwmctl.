@@ -282,6 +282,21 @@ bool set_pwm(std::string cmd){
     
 }
 
+int amd_setzerorpmmode(int mode,std::string path ,std::string cmd){
+    std::string zrpm_path = path.substr(0, path.find_last_of('/')) + "/fan_zero_rpm_enable";
+    std::cout << "DEBUG zrpm_path = [" << zrpm_path << "]\n";
+    std::ofstream zfile(zrpm_path);
+    if (!zfile) {
+        std::cerr << "Konnte " << zrpm_path << " nicht öffnen\n";
+        return 1;
+    } else {
+        zfile << mode; 
+        zfile.flush();
+        zfile.close();
+    }
+    return 0;
+}
+
 bool set_amd_pwm(std::string cmd){
     if (cmd.rfind("AMDPWM", 0) != 0) {
         std::cerr << "Ungültiges Kommando.\n";
@@ -297,26 +312,11 @@ bool set_amd_pwm(std::string cmd){
     std::string path = cmd.substr(p1+1, p2-p1-1);
     std::string length = cmd.substr(p2+1,p3-p2-1);
 
-    // Pfad validieren
-/*    if (!is_path_allowed(path)) {
-        std::cerr << "Pfad verboten: " << path << "\n";
-        return 1;
-    }
-*/
+    size_t prpm = cmd.find_last_not_of(':');
+    char zrpm_c = cmd.substr(prpm)[0];
+    int zrpm = zrpm_c - '0';
 
-    // --- Zero-RPM-Reset vor dem finalen Commit --- Erstmal nur test, weil es sonst bugt!!
-    std::string zrpm_path = path.substr(0, path.find_last_of('/')) + "/fan_zero_rpm_enable";
-    std::cout << "DEBUG zrpm_path = [" << zrpm_path << "]\n";
-    std::ofstream zfile(zrpm_path);
-    if (!zfile) {
-        std::cerr << "Konnte " << zrpm_path << " nicht öffnen\n";
-        // kein hartes return hier, da fan_curve-Commit trotzdem versucht werden soll
-    } else {
-        zfile << "0"; 
-        zfile.flush();
-        zfile.close();
-    }
-
+    amd_setzerorpmmode(zrpm,path,cmd);
 
     std::ofstream file(path);
     if (!file) {
@@ -332,10 +332,13 @@ bool set_amd_pwm(std::string cmd){
     for(int i=0;i<std::stoi(length);i++){
         size_t p1 = cmd.find(':');
         size_t p2 = cmd.find(':', p1 + 1);
-        std::string pwm  = cmd.substr(0, p1);
+        int pwm  = std::stoi(cmd.substr(0, p1));
         std::string temp = cmd.substr(p1+1, p2-p1-1);
-
-        file << (std::to_string(i)+" "+temp+" "+pwm);
+        
+        if (pwm<30){
+            amd_setzerorpmmode(1,path,cmd);
+        }
+        file << (std::to_string(i)+" "+temp+" "+std::to_string(pwm < 30 ? 30 : pwm));
         file.flush();                     
         if (!file) {
             std::cout << "Fehler beim Schreiben von Punkt " << i << "\n";

@@ -8,6 +8,7 @@ public:
     virtual ~Gpu() = default;
     
     virtual bool init() = 0;
+    virtual int tempforpwmctl() = 0;
     virtual int core_temp() = 0;
     virtual int hotspot_temp() { return -1; }
     virtual int vram_temp() { return -1; }

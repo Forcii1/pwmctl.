@@ -7,6 +7,8 @@ class NvidiaGpu : public Gpu {
     public:
         bool init() override;
 
+        int tempforpwmctl() override;
+        
         int core_temp() override;
         int hotspot_temp() override;
         int vram_temp() override;

@@ -65,6 +65,11 @@ bool AmdGpu::init(){
     return true;
 }
 
+int AmdGpu::tempforpwmctl(){
+    return AmdGpu::hotspot_temp();
+}
+
+
 int AmdGpu::core_temp(){
     return readfile(temp_edge_path)/1000;
 }
@@ -142,12 +147,13 @@ bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves, std::string nu
 
     int temps_for_driver[AMDCONTROLPOINTS];
     int pwms_for_driver[AMDCONTROLPOINTS];
-
+    int zrpm=1;
     static int old_pwms_for_driver[AMDCONTROLPOINTS] = {0};
     //static int oldpoint=0;
 
     std::string curve= type[num]["curve"];
     if(type[num]["enabled"]){
+        zrpm=0;
         for(int i=0;i<AMDCONTROLPOINTS;i++){
             pwms_for_driver[i]=type[num]["value"];
             temps_for_driver[i]=15*i+30;
@@ -174,9 +180,10 @@ bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves, std::string nu
         for(int i=0;i<AMDCONTROLPOINTS;i++){
 
             pwms_for_driver[i]=int(pwms_vec.at(point-AMDCONTROLPOINTS+i <= 0 ? 0 : point-AMDCONTROLPOINTS+i));
-            
+            //pwms_for_driver[i]= pwms_for_driver[i] <30 ? 30 : pwms_for_driver[i];
+
             temps_for_driver[i]=temps_vec.at(point-AMDCONTROLPOINTS+i <= 0 ? 0 : point-AMDCONTROLPOINTS+i);
-            temps_for_driver[i]= temps_for_driver[i] < 30 ? 30: temps_for_driver[i];
+            temps_for_driver[i]= temps_for_driver[i] < 25 ? 25: temps_for_driver[i];
         }
 
         /*if((oldpoint-AMDCONTROLPOINTS<=point and oldpoint >= point)){
@@ -186,7 +193,7 @@ bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves, std::string nu
         
     }
     if((memcmp(pwms_for_driver, old_pwms_for_driver, sizeof(pwms_for_driver)) != 0)){
-        send_command_amdgpu(path.string()+"device/gpu_od/fan_ctrl/fan_curve", pwms_for_driver,temps_for_driver, AMDCONTROLPOINTS);
+        send_command_amdgpu(path.string()+"device/gpu_od/fan_ctrl/fan_curve", pwms_for_driver,temps_for_driver, AMDCONTROLPOINTS,zrpm);
         memcpy(old_pwms_for_driver, pwms_for_driver, sizeof(pwms_for_driver));
 
     }
