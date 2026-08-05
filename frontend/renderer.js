@@ -583,29 +583,43 @@ const tempGPU = document.getElementById('tempGPU');
 
 const sensorGroups = [
     {
-        title: "Temperatures",
+        title: "CPU",
         items: [
-            ["cpu_temp", "CPU"],
-            ["gpu_core_temp", "GPU Core"],
-            ["gpu_hotspot_temp", "GPU Hotspot"],
-            ["gpu_vram_temp", "VRAM"]
+            ["cpu_temp", "Temperature"]
         ]
     },
     {
         title: "GPU",
-        items: [
-            ["gpu_core_clock", "Core Clock"],
-            ["gpu_mem_clock", "Memory Clock"],
-            ["gpu_power_w", "Power"],
-            ["gpu_volt_mv", "Voltage"],
-            ["gpu_vram_used", "VRAM Used"]//,
-            //["gpu_vram_total", "VRAM Percentage"]
-        ]
-    },
-    {
-        title: "Fans",
-        items: [
-            ["gpu_fans", "GPU Fans"]
+        subgroups: [
+            {
+                title: "Temperatures",
+                items: [
+                    ["gpu_core_temp", "Core"],
+                    ["gpu_hotspot_temp", "Hotspot"],
+                    ["gpu_vram_temp", "VRAM"]
+                ]
+            },
+            {
+                title: "Power",
+                items: [
+                    ["gpu_power_w", "Power"],
+                    ["gpu_volt_mv", "Voltage"]
+                ]
+            },
+            {
+                title: "Clocks",
+                items: [
+                    ["gpu_core_clock", "Core Clock"],
+                    ["gpu_mem_clock", "Memory Clock"]
+                ]
+            },
+            {
+                title: "Stats",
+                items: [
+                    ["gpu_vram_used", "VRAM Used"],
+                    ["gpu_fans", "GPU Fans"]
+                ]
+            }
         ]
     }
 ];
@@ -709,16 +723,45 @@ function createSensorGroup(group, data) {
     const titleEl = document.createElement("div");
     titleEl.className = "sensor-group-title";
     titleEl.textContent = group.title;
+    groupEl.appendChild(titleEl);
 
-    const gridEl = document.createElement("div");
-    gridEl.className = "sensor-group-grid";
+    if (Array.isArray(group.subgroups)) {
+        // Verschachtelte Unterkapitel (z.B. GPU -> Temperatures, Clocks, ...)
+        group.subgroups.forEach(subgroup => {
+            const hasData = subgroup.items.some(([key]) => data?.[key] !== undefined);
+            if (!hasData) return;
 
-    group.items
-        .filter(([key]) => data?.[key] !== undefined)
-        .map(([key, label]) => createSensorCard(key, label, data))
-        .forEach(card => gridEl.appendChild(card));
+            const subEl = document.createElement("div");
+            subEl.className = "sensor-subgroup";
 
-    groupEl.append(titleEl, gridEl);
+            const subTitleEl = document.createElement("div");
+            subTitleEl.className = "sensor-subgroup-title";
+            subTitleEl.textContent = subgroup.title;
+
+            const gridEl = document.createElement("div");
+            gridEl.className = "sensor-group-grid";
+
+            subgroup.items
+                .filter(([key]) => data?.[key] !== undefined)
+                .map(([key, label]) => createSensorCard(key, label, data))
+                .forEach(card => gridEl.appendChild(card));
+
+            subEl.append(subTitleEl, gridEl);
+            groupEl.appendChild(subEl);
+        });
+    } else {
+        // Flache Gruppe (z.B. CPU)
+        const gridEl = document.createElement("div");
+        gridEl.className = "sensor-group-grid";
+
+        group.items
+            .filter(([key]) => data?.[key] !== undefined)
+            .map(([key, label]) => createSensorCard(key, label, data))
+            .forEach(card => gridEl.appendChild(card));
+
+        groupEl.appendChild(gridEl);
+    }
+
     return groupEl;
 }
 

@@ -334,7 +334,6 @@ bool set_amd_pwm(std::string cmd){
         size_t p2 = cmd.find(':', p1 + 1);
         std::string pwm  = cmd.substr(0, p1);
         std::string temp = cmd.substr(p1+1, p2-p1-1);
-        
         file << (std::to_string(i)+" "+temp+" "+pwm);
         file.flush();                     
         if (!file) {
