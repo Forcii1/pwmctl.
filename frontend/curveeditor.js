@@ -5,6 +5,13 @@ export function openCurveEditor(points, miniCanvas, onSave) {
     const POINT_RADIUS = 7;
     const POINT_HIT_RADIUS = 14;
 
+    // Logische (CSS-)Größe des Canvas. Die interne Pixelauflösung wird
+    // separat anhand von devicePixelRatio gesetzt (siehe setupHiDPICanvas),
+    // damit die Achsenbeschriftungen auf HiDPI/Retina-Displays nicht
+    // "low resolution" wirken.
+    const CANVAS_W = 800;
+    const CANVAS_H = 400;
+
     function clampPercent(value) {
         const numericValue = Number(value);
         if (!Number.isFinite(numericValue)) return FAN_PERCENT_MIN;
@@ -27,6 +34,26 @@ export function openCurveEditor(points, miniCanvas, onSave) {
         return clampPercent(numericValue);
     }
 
+    /**
+     * Setzt die interne Pixelauflösung des Canvas anhand von
+     * devicePixelRatio, damit Linien und Text auf HiDPI/Retina-Displays
+     * scharf gerendert werden. Die CSS-Größe (cssWidth/cssHeight) bleibt
+     * unverändert, nur der Zeichenkontext wird entsprechend skaliert.
+     */
+    function setupHiDPICanvas(canvasEl, cssWidth, cssHeight) {
+        const dpr = window.devicePixelRatio || 1;
+
+        canvasEl.width = cssWidth * dpr;
+        canvasEl.height = cssHeight * dpr;
+
+        canvasEl.style.width = cssWidth + 'px';
+        canvasEl.style.height = cssHeight + 'px';
+
+        const context = canvasEl.getContext('2d');
+        context.scale(dpr, dpr);
+        return context;
+    }
+
     points = Array.isArray(points) && points.length > 0
         ? points.map(point => ({
             ...point,
@@ -42,8 +69,6 @@ export function openCurveEditor(points, miniCanvas, onSave) {
     overlay.appendChild(editorContainer);
 
     const canvas = document.createElement('canvas');
-    canvas.width = 800;
-    canvas.height = 400;
     canvas.className = 'curve-editor-canvas';
     editorContainer.appendChild(canvas);
 
@@ -74,7 +99,7 @@ export function openCurveEditor(points, miniCanvas, onSave) {
     editorContainer.appendChild(closeBtn);
 
     document.body.appendChild(overlay);
-    const ctx = canvas.getContext('2d');
+    const ctx = setupHiDPICanvas(canvas, CANVAS_W, CANVAS_H);
 
     if (!points.find(p => p.x === 0)) points.unshift({ x: 0, y: 0 });
     points.sort((a, b) => a.x - b.x);
@@ -97,15 +122,17 @@ export function openCurveEditor(points, miniCanvas, onSave) {
 
     /**
      * Rechnet die Mausposition aus CSS-Pixeln in die internen
-     * Pixelkoordinaten des Canvas um. Das verhindert einen Versatz,
-     * wenn das Canvas über CSS größer oder kleiner dargestellt wird.
+     * logischen Koordinaten des Canvas um (0..CANVAS_W / 0..CANVAS_H).
+     * Das verhindert einen Versatz, wenn das Canvas über CSS größer
+     * oder kleiner dargestellt wird, und funktioniert unabhängig von
+     * devicePixelRatio.
      */
     function getCanvasMousePosition(event) {
         const rect = canvas.getBoundingClientRect();
 
         return {
-            x: (event.clientX - rect.left) * (canvas.width / rect.width),
-            y: (event.clientY - rect.top) * (canvas.height / rect.height)
+            x: (event.clientX - rect.left) * (CANVAS_W / rect.width),
+            y: (event.clientY - rect.top) * (CANVAS_H / rect.height)
         };
     }
 
@@ -115,13 +142,13 @@ export function openCurveEditor(points, miniCanvas, onSave) {
     function canvasPositionToValues(canvasX, canvasY) {
         return {
             x: clamp(
-                (canvasX - 50) / (canvas.width - 70) * 100,
+                (canvasX - 50) / (CANVAS_W - 70) * 100,
                 0,
                 100
             ),
             y: clamp(
                 FAN_PERCENT_MAX
-                    - (canvasY - 20) / (canvas.height - 60) * FAN_PERCENT_MAX,
+                    - (canvasY - 20) / (CANVAS_H - 60) * FAN_PERCENT_MAX,
                 FAN_PERCENT_MIN,
                 FAN_PERCENT_MAX
             )
@@ -133,9 +160,9 @@ export function openCurveEditor(points, miniCanvas, onSave) {
      */
     function pointToCanvasPosition(point) {
         return {
-            x: 50 + point.x / 100 * (canvas.width - 70),
-            y: canvas.height - 40
-                - point.y / FAN_PERCENT_MAX * (canvas.height - 60)
+            x: 50 + point.x / 100 * (CANVAS_W - 70),
+            y: CANVAS_H - 40
+                - point.y / FAN_PERCENT_MAX * (CANVAS_H - 60)
         };
     }
 
@@ -190,16 +217,16 @@ export function openCurveEditor(points, miniCanvas, onSave) {
     }
 
     function drawCurve() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
         // Achsen
         ctx.strokeStyle = '#555';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(50, canvas.height - 40);
-        ctx.lineTo(canvas.width - 20, canvas.height - 40);
+        ctx.moveTo(50, CANVAS_H - 40);
+        ctx.lineTo(CANVAS_W - 20, CANVAS_H - 40);
         ctx.moveTo(50, 20);
-        ctx.lineTo(50, canvas.height - 40);
+        ctx.lineTo(50, CANVAS_H - 40);
         ctx.stroke();
 
         // Raster X
@@ -210,12 +237,12 @@ export function openCurveEditor(points, miniCanvas, onSave) {
         ctx.font = '12px sans-serif';
         ctx.textAlign = 'center';
         for (let t = 10; t <= 100; t += 10) {
-            const x = 50 + t / 100 * (canvas.width - 70);
+            const x = 50 + t / 100 * (CANVAS_W - 70);
             ctx.beginPath();
             ctx.moveTo(x, 20);
-            ctx.lineTo(x, canvas.height - 40);
+            ctx.lineTo(x, CANVAS_H - 40);
             ctx.stroke();
-            ctx.fillText(t, x - 7, canvas.height - 20);
+            ctx.fillText(t, x - 7, CANVAS_H - 20);
         }
         ctx.restore();
 
@@ -227,10 +254,10 @@ export function openCurveEditor(points, miniCanvas, onSave) {
         ctx.font = '12px sans-serif';
         ctx.textAlign = 'right';
         for (let p = 0; p <= FAN_PERCENT_MAX; p += 10) {
-            const y = canvas.height - 40 - p / FAN_PERCENT_MAX * (canvas.height - 60);
+            const y = CANVAS_H - 40 - p / FAN_PERCENT_MAX * (CANVAS_H - 60);
             ctx.beginPath();
             ctx.moveTo(50, y);
-            ctx.lineTo(canvas.width - 20, y);
+            ctx.lineTo(CANVAS_W - 20, y);
             ctx.stroke();
             ctx.fillText(`${p}%`, 42, y + 4);
         }
@@ -241,14 +268,14 @@ export function openCurveEditor(points, miniCanvas, onSave) {
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(
-                50 + points[0].x / 100 * (canvas.width - 70),
-                canvas.height - 40 - points[0].y / FAN_PERCENT_MAX * (canvas.height - 60)
+                50 + points[0].x / 100 * (CANVAS_W - 70),
+                CANVAS_H - 40 - points[0].y / FAN_PERCENT_MAX * (CANVAS_H - 60)
             );
 
             for (let i = 1; i < points.length; i++) {
                 ctx.lineTo(
-                    50 + points[i].x / 100 * (canvas.width - 70),
-                    canvas.height - 40 - points[i].y / FAN_PERCENT_MAX * (canvas.height - 60)
+                    50 + points[i].x / 100 * (CANVAS_W - 70),
+                    CANVAS_H - 40 - points[i].y / FAN_PERCENT_MAX * (CANVAS_H - 60)
                 );
             }
             ctx.stroke();
@@ -258,8 +285,8 @@ export function openCurveEditor(points, miniCanvas, onSave) {
             ctx.fillStyle = p === selectedPoint ? '#fff' : '#00bcd4';
             ctx.beginPath();
             ctx.arc(
-                50 + p.x / 100 * (canvas.width - 70),
-                canvas.height - 40 - p.y / FAN_PERCENT_MAX * (canvas.height - 60),
+                50 + p.x / 100 * (CANVAS_W - 70),
+                CANVAS_H - 40 - p.y / FAN_PERCENT_MAX * (CANVAS_H - 60),
                 POINT_RADIUS,
                 0,
                 2 * Math.PI
