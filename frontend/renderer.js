@@ -41,12 +41,154 @@ function normalizeCurvePoints(points) {
     }));
 }
 
+// ==================== OVERCLOCKING ====================
+const OC_POWER_LIMIT_MIN = 100;
+const OC_POWER_LIMIT_MAX = 450;
+const OC_CORE_OFFSET_MIN = -300;
+const OC_CORE_OFFSET_MAX = 300;
+const OC_MEM_OFFSET_MIN = -1000;
+const OC_MEM_OFFSET_MAX = 2000;
+
+function clampInt(value, min, max, fallback = 0) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return fallback;
+    return Math.min(max, Math.max(min, Math.round(numericValue)));
+}
+
+async function createOverclockUI(savedData = null) {
+    const container = document.getElementById('overclockingContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const gpupath = await window.electronAPI.searchPath("amdgpu");
+    const isAmd = gpupath !== "NONE";
+
+    const cacheData = await loadAllData(cachePath).catch(() => null);
+    const ocSaved = savedData?.Overclock || {};
+
+
+    const warning = document.createElement('div');
+    warning.className = 'oc-warning';
+    warning.textContent = '⚠ Overclocking can lead to instability.';
+    container.appendChild(warning);
+
+    const header = document.createElement('div');
+    header.className = 'oc-header';
+
+    const enableLabel = document.createElement('label');
+    enableLabel.textContent = 'Overclocking aktivieren';
+    enableLabel.htmlFor = 'ocEnableCheckbox';
+
+    const enableCheckbox = document.createElement('input');
+    enableCheckbox.type = 'checkbox';
+    enableCheckbox.id = 'ocEnableCheckbox';
+    enableCheckbox.checked = ocSaved?.enabled || false;
+
+    header.append(enableCheckbox, enableLabel);
+    container.appendChild(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'oc-grid';
+
+    function buildField(id, labelText, min, max, step, initialValue, unit) {
+        const field = document.createElement('div');
+        field.className = 'oc-field';
+
+        const label = document.createElement('label');
+        label.textContent = labelText;
+
+        const row = document.createElement('div');
+        row.className = 'oc-row';
+
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.id = id;
+        input.min = String(min);
+        input.max = String(max);
+        input.step = String(step);
+        input.value = String(clampInt(initialValue, min, max, 0));
+        input.disabled = !enableCheckbox.checked;
+        input.style.opacity = enableCheckbox.checked ? '1' : '0.5';
+
+        const valueLabel = document.createElement('span');
+        valueLabel.className = 'oc-value';
+        valueLabel.textContent = `${input.value} ${unit}`;
+
+        input.addEventListener('input', () => {
+            valueLabel.textContent = `${input.value} ${unit}`;
+        });
+
+        row.append(input, valueLabel);
+        field.append(label, row);
+        grid.appendChild(field);
+
+        return input;
+    }
+
+    const powerInput = buildField(
+        'ocPowerLimitInput',
+        `Power Limit (${OC_POWER_LIMIT_MIN}–${OC_POWER_LIMIT_MAX} W)`,
+        OC_POWER_LIMIT_MIN,
+        OC_POWER_LIMIT_MAX,
+        1,
+        ocSaved?.power_limit_w ?? cacheData?.gpu_power_w ?? OC_POWER_LIMIT_MAX,
+        'W'
+    );
+
+    const coreInput = buildField(
+        'ocCoreOffsetInput',
+        'Core Clock Offset',
+        OC_CORE_OFFSET_MIN,
+        OC_CORE_OFFSET_MAX,
+        5,
+        ocSaved?.core_offset_mhz ?? 0,
+        'MHz'
+    );
+
+    const memInput = buildField(
+        'ocMemOffsetInput',
+        'Memory Clock Offset',
+        OC_MEM_OFFSET_MIN,
+        OC_MEM_OFFSET_MAX,
+        10,
+        ocSaved?.mem_offset_mhz ?? 0,
+        'MHz'
+    );
+
+    container.appendChild(grid);
+
+    enableCheckbox.addEventListener('change', () => {
+        [powerInput, coreInput, memInput].forEach(input => {
+            input.disabled = !enableCheckbox.checked;
+            input.style.opacity = enableCheckbox.checked ? '1' : '0.5';
+        });
+    });
+}
+
+function collectOverclockData() {
+    const enableCheckbox = document.getElementById('ocEnableCheckbox');
+    // Keine Checkbox vorhanden (z.B. AMD-GPU / kein GPU gefunden) -> nichts zu speichern.
+    if (!enableCheckbox) return null;
+
+    const powerInput = document.getElementById('ocPowerLimitInput');
+    const coreInput = document.getElementById('ocCoreOffsetInput');
+    const memInput = document.getElementById('ocMemOffsetInput');
+
+    return {
+        enabled: enableCheckbox.checked,
+        power_limit_w: powerInput ? clampInt(powerInput.value, Number(powerInput.min), Number(powerInput.max)) : -1,
+        core_offset_mhz: coreInput ? clampInt(coreInput.value, OC_CORE_OFFSET_MIN, OC_CORE_OFFSET_MAX, 0) : 0,
+        mem_offset_mhz: memInput ? clampInt(memInput.value, OC_MEM_OFFSET_MIN, OC_MEM_OFFSET_MAX, 0) : 0,
+    };
+}
+
 // ==================== FAN MANAGEMENT ====================
 async function init() {
     console.log(`Configpath: ${configPath}`);
     const savedData = await loadAllData(configPath);
     await loadCurves(savedData);
     await createFanButtons("it87", "it86", "Fans", savedData);
+    await createOverclockUI(savedData);
 }
 
 if (document.readyState === 'loading') {
@@ -507,6 +649,10 @@ function collectAllData() {
         };
     });
 
+    // --- Overclocking ---
+    const overclockData = collectOverclockData();
+    if (overclockData) data.Overclock = overclockData;
+
     return data;
 }
 
@@ -813,6 +959,7 @@ document.getElementById('globalResetBtn').addEventListener('click', async () => 
     const savedData = await loadAllData(configPath);
     await loadCurves(savedData);
     await createFanButtons("it87", "it86", "Fans", savedData);
+    await createOverclockUI(savedData);
 });
 
 

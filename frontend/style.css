@@ -664,6 +664,82 @@ input[type="range"] {
   white-space: normal;
 }
 
+/* ========== Overclocking ========== */
+#overclockingContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  margin: 14px 20px 6px 20px;
+  padding: 12px;
+
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(0, 188, 212, 0.16);
+  border-radius: var(--container-radius);
+  box-shadow: var(--shadow);
+}
+
+.oc-warning {
+  font-size: 0.8rem;
+  color: #ffb85c;
+  background: rgba(255, 184, 92, 0.1);
+  border: 1px solid rgba(255, 184, 92, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.oc-unsupported {
+  font-size: 0.85rem;
+  color: #9fb3bd;
+  font-style: italic;
+}
+
+.oc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.oc-header label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.oc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.oc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.oc-field label {
+  font-size: 0.75rem;
+  color: #9fb3bd;
+}
+
+.oc-field .oc-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.oc-field input[type="range"] {
+  width: 100%;
+}
+
+.oc-value {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f0f0f0;
+  text-align: center;
+}
+
 /* ========== Mobile ========== */
 @media (max-width: 700px) {
   #topRow {
@@ -688,7 +764,8 @@ input[type="range"] {
   h2,
   #buttonsContainer,
   #curvesContainer,
-  #sensorOverview {
+  #sensorOverview,
+  #overclockingContainer {
     margin-left: 12px;
     margin-right: 12px;
   }
