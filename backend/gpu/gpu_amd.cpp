@@ -144,10 +144,10 @@ int get_list_points(int temps[], int temp, int length){
 }
 
 bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves,int pwm, std::string num,int GPUTEMP, int CPUTEMP,int fan){
-
+    //Mutlifan not supported!
     int temps_for_driver[AMDCONTROLPOINTS];
     int pwms_for_driver[AMDCONTROLPOINTS];
-    int zrpm=1;
+    int zrpm=0;
     static int old_pwms_for_driver[AMDCONTROLPOINTS] = {0};
     //static int oldpoint=0;
 
@@ -164,7 +164,7 @@ bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves,int pwm, std::s
         int* temps = temps_vec.data();
         int point=0;
         
-
+            
         switch (int(curves[curve]["source"])) {
             //If there is another temp source selected, there should be a "direct mode" as in the first "if-block"
             //Otherwise the right curvepoints get selected but the card controls itself in the curve with the hotspot temp, so there would be a wrong output.
@@ -179,11 +179,13 @@ bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves,int pwm, std::s
                 point = get_list_points(temps, CPUTEMP>GPUTEMP ? CPUTEMP : GPUTEMP, temps_vec.size());
                 break;
         }
-
         for(int i=0;i<AMDCONTROLPOINTS;i++){
 
             pwms_for_driver[i]=int(pwms_vec.at(point-AMDCONTROLPOINTS+i <= 0 ? 0 : point-AMDCONTROLPOINTS+i));
-            //pwms_for_driver[i]= pwms_for_driver[i] <30 ? 30 : pwms_for_driver[i];
+            if (pwms_for_driver[i] <30){
+                zrpm=1;
+            }
+            pwms_for_driver[i]= pwms_for_driver[i] <30 ? 30 : pwms_for_driver[i];
 
             temps_for_driver[i]=temps_vec.at(point-AMDCONTROLPOINTS+i <= 0 ? 0 : point-AMDCONTROLPOINTS+i);
             temps_for_driver[i]= temps_for_driver[i] < 25 ? 25: temps_for_driver[i];

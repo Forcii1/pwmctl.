@@ -332,13 +332,10 @@ bool set_amd_pwm(std::string cmd){
     for(int i=0;i<std::stoi(length);i++){
         size_t p1 = cmd.find(':');
         size_t p2 = cmd.find(':', p1 + 1);
-        int pwm  = std::stoi(cmd.substr(0, p1));
+        std::string pwm  = cmd.substr(0, p1);
         std::string temp = cmd.substr(p1+1, p2-p1-1);
         
-        if (pwm<30){
-            amd_setzerorpmmode(1,path,cmd);
-        }
-        file << (std::to_string(i)+" "+temp+" "+std::to_string(pwm < 30 ? 30 : pwm));
+        file << (std::to_string(i)+" "+temp+" "+pwm);
         file.flush();                     
         if (!file) {
             std::cout << "Fehler beim Schreiben von Punkt " << i << "\n";
