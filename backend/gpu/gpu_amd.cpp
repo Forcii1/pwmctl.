@@ -143,6 +143,13 @@ int get_list_points(int temps[], int temp, int length){
     return 1;
 }
 
+std::vector<int> setarraytoval(std::vector<int> pwms_vec,int pwm){
+    for(int i=0;i<AMDCONTROLPOINTS;i++){
+        pwms_vec.at(i)=pwm;
+    }
+    return pwms_vec;
+}
+
 bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves,int pwm, std::string num,int GPUTEMP, int CPUTEMP,int fan){
     //Mutlifan not supported!
     int temps_for_driver[AMDCONTROLPOINTS];
@@ -170,13 +177,13 @@ bool AmdGpu::setpwm2(nlohmann::json& type,nlohmann::json& curves,int pwm, std::s
             //Otherwise the right curvepoints get selected but the card controls itself in the curve with the hotspot temp, so there would be a wrong output.
             //This mode, altough it is complicated, is still left in because this is the "normal" usecase mode which most users would use. it is also the most efficent one because the curve register is only written when needed and the card can mostly control itself.
             case 0://cpu
-                point = get_list_points(temps, CPUTEMP, temps_vec.size());
+                pwms_vec=setarraytoval(pwms_vec, pwm);
                 break;
             case 1://gpu
                 point = get_list_points(temps, GPUTEMP, temps_vec.size());
                 break;
             case 2://higher
-                point = get_list_points(temps, CPUTEMP>GPUTEMP ? CPUTEMP : GPUTEMP, temps_vec.size());
+                pwms_vec=setarraytoval(pwms_vec, pwm);
                 break;
         }
         for(int i=0;i<AMDCONTROLPOINTS;i++){
