@@ -1,6 +1,7 @@
 #include <atomic>
 #include <chrono>
 #include <csignal>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -73,6 +74,57 @@ json loadconf(const std::filesystem::path config){
     file >> j;
     file.close(); 
     return j;
+}
+
+template <typename T>
+T getOr(const json& j, const std::string& key, T def) {
+    if (j.contains(key) && !j.at(key).is_null()) {
+        try { return j.at(key).get<T>(); } catch (...) { return def; }
+    }
+    return def;
+}
+
+// Wendet Overclocking-Einstellungen aus der Config an, aber nur wenn sich
+// etwas geaendert hat (die GPU-APIs sollen nicht jede Sekunde neu getriggert werden).
+void applyOverclock(std::unique_ptr<Gpu>& gpu, json& j) {
+    static bool oc_was_enabled = false;
+    static int last_power_limit = INT32_MIN;
+    static int last_core_offset = INT32_MIN;
+    static int last_mem_offset  = INT32_MIN;
+
+    json& oc = j["Overclock"];
+
+    bool enabled     = getOr<bool>(oc, "enabled", false);
+    int power_limit  = getOr<int>(oc, "power_limit_w", -1);
+    int core_offset  = getOr<int>(oc, "core_offset_mhz", 0);
+    int mem_offset   = getOr<int>(oc, "mem_offset_mhz", 0);
+
+    if (enabled) {
+        if (power_limit != last_power_limit && power_limit > 0) {
+            gpu->change_wattage(power_limit);
+            last_power_limit = power_limit;
+        }
+        if (core_offset != last_core_offset) {
+            gpu->change_core_clock(core_offset);
+            last_core_offset = core_offset;
+        }
+        if (mem_offset != last_mem_offset) {
+            gpu->change_mem_clock(mem_offset);
+            last_mem_offset = mem_offset;
+        }
+        oc_was_enabled = true;
+    } else if (oc_was_enabled) {
+        // Beim Deaktivieren werden nur die Clock-Offsets zurueckgesetzt (0 = Standard).
+        // Das Power-Limit bleibt bewusst auf dem zuletzt gesetzten Wert, da wir hier
+        // keine Hardware-Grenzwerte mehr abfragen, um sicher auf "Werksdefault" zurueckzusetzen.
+        gpu->change_core_clock(0);
+        gpu->change_mem_clock(0);
+
+        oc_was_enabled = false;
+        last_power_limit = INT32_MIN;
+        last_core_offset = INT32_MIN;
+        last_mem_offset  = INT32_MIN;
+    }
 }
 
 int getfans(const std::string PATH){
@@ -188,6 +240,8 @@ int main (){
         gputemp=gpu->tempforpwmctl();
 
         cputemp=readfile(CPUtemppath)/1000;
+
+        applyOverclock(gpu, j);
 
         for (unsigned int i=1;i <fanCount;i++) {
             int pwm =getpwm(fans,curves,std::to_string(i),gputemp,cputemp);
