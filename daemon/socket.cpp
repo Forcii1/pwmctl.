@@ -1,4 +1,5 @@
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -11,6 +12,7 @@
 #include <cstring>
 #include <limits.h>
 #include <filesystem>
+#include <vector>
 
 #define SOCKET_PATH "/var/run/pwmctld.sock"
 
@@ -227,19 +229,124 @@ class NvidiaController {
 };
 
 
-bool is_path_allowed(const std::string& path) {
-    std::filesystem::path p(path);
-    std::string fname = p.filename().string();
-    std::string dir   = p.parent_path().string();
+bool is_digits(const std::string& str) {
+    return !str.empty() &&
+           std::all_of(str.begin(), str.end(),
+               [](unsigned char c) {
+                   return std::isdigit(c);
+               });
+}
 
-    if (dir.rfind("/sys/class/hwmon/hwmon", 0) != 0)
+
+bool is_path_allowed(const std::string& path) {
+    std::error_code ec;
+
+
+    std::filesystem::path original(path);
+
+    if (!original.is_absolute())
         return false;
 
-    if (fname.rfind("pwm", 0) != 0) return false;
-    size_t i = 3;
-    while (i < fname.size() && isdigit(fname[i])) i++;
-    if (i == fname.size()) return true;
-    if (fname.substr(i) == "_enable") return true;
+    original = original.lexically_normal();
+
+    std::filesystem::path canonical =
+        std::filesystem::canonical(original, ec);
+
+    if (ec)
+        return false;
+
+    auto canon_it = canonical.begin();
+
+    if (canon_it == canonical.end() || *canon_it++ != "/")
+        return false;
+
+    if (canon_it == canonical.end() || *canon_it++ != "sys")
+        return false;
+
+    if (canon_it == canonical.end() || *canon_it++ != "devices")
+        return false;
+
+
+    auto it = original.begin();
+
+    if (it == original.end() || *it++ != "/")
+        return false;
+
+    if (it == original.end() || *it++ != "sys")
+        return false;
+
+    if (it == original.end() || *it++ != "class")
+        return false;
+
+    if (it == original.end() || *it++ != "hwmon")
+        return false;
+
+    if (it == original.end())
+        return false;
+
+
+    std::string hwmon = (*it++).string();
+
+    if (hwmon.rfind("hwmon", 0) != 0)
+        return false;
+
+    if (!is_digits(hwmon.substr(5)))
+        return false;
+
+    std::vector<std::string> rest;
+
+    for (; it != original.end(); ++it)
+        rest.push_back(it->string());
+
+    if (rest.size() == 1) {
+        const std::string& filename = rest[0];
+
+        // power1_cap
+        if (filename == "power1_cap")
+            return true;
+
+
+        // pwmN / pwmN_enable
+        if (filename.rfind("pwm", 0) == 0) {
+            std::string after_pwm = filename.substr(3);
+
+            // pwm1, pwm2, ...
+            if (is_digits(after_pwm))
+                return true;
+
+
+            // pwm1_enable usw.
+            constexpr std::string_view suffix = "_enable";
+
+            if (after_pwm.size() > suffix.size() &&
+                after_pwm.ends_with(suffix)) {
+
+                std::string number =
+                    after_pwm.substr(
+                        0,
+                        after_pwm.size() - suffix.size()
+                    );
+
+                if (is_digits(number))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    if (rest.size() == 4 &&
+        rest[0] == "device" &&
+        rest[1] == "gpu_od" &&
+        rest[2] == "fan_ctrl") {
+
+        if (rest[3] == "fan_curve")
+            return true;
+
+        if (rest[3] == "fan_zero_rpm_enable")
+            return true;
+    }
+
 
     return false;
 }
@@ -284,7 +391,6 @@ bool set_pwm(std::string cmd){
 
 int amd_setzerorpmmode(int mode,std::string path ,std::string cmd){
     std::string zrpm_path = path.substr(0, path.find_last_of('/')) + "/fan_zero_rpm_enable";
-    std::cout << "DEBUG zrpm_path = [" << zrpm_path << "]\n";
     std::ofstream zfile(zrpm_path);
     if (!zfile) {
         std::cerr << "Konnte " << zrpm_path << " nicht öffnen\n";
@@ -310,6 +416,13 @@ bool set_amd_pwm(std::string cmd){
 
 
     std::string path = cmd.substr(p1+1, p2-p1-1);
+    
+    if (!is_path_allowed(path)) {
+        std::cerr << "Pfad verboten: " << path << "\n";
+        return 1;
+    }
+    std::cout<<"TEST";
+
     std::string length = cmd.substr(p2+1,p3-p2-1);
 
     size_t prpm = cmd.find_last_not_of(':');
@@ -322,8 +435,7 @@ bool set_amd_pwm(std::string cmd){
     if (!file) {
         std::cerr << "Fehler beim Schreiben in " << path << "\n";
         return 1;
-    } 
-    std::cout<<cmd<<std::endl;    
+    }    
     cmd=cmd.substr(p3+1,cmd.length());
 
 

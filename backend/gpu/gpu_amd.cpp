@@ -135,7 +135,7 @@ int get_list_points(int temps[], int temp, int length){
     }else{
         for(int i=0;i<length;i++){
             if(temps[i]>temp){
-                return i+((length-i)>= 2 ? 2 : (length-i))+1;
+                return i+((length-i)>= 2 ? 2 : (length-i));
             }
         }
     }
