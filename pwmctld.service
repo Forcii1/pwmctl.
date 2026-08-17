@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/pwmctld
+ExecStart=/usr/local/share/pwmctl/socket/pwmctld
 Restart=always
 User=root
 Group=root

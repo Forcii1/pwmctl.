@@ -106,9 +106,12 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-    backendProcess = spawn('pwmctl-backend', [], { detached: false });
+    backendProcess = spawn('pwmctl', ['backend'], {
+        detached: false
+    });
+
     backendProcess.on('error', (err) => {
-        console.error('[Main] pwmctl-backend konnte nicht gestartet werden:', err);
+        console.error('[Main] pwmctl backend konnte nicht gestartet werden:', err);
     });
 
     createWindow();

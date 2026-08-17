@@ -65,7 +65,7 @@ install: all install-socket install-client install-frontend
 install-socket:
 	@echo "Installiere Socket-Server..."
 	@install -d $(INSTALL_DIR)
-	@install -m 755 $(SOCKET) $(INSTALL_DIR)/$(SOCKET)
+	@install -Dm755 $(SOCKET) /usr/local/share/pwmctl/socket/pwmctld
 	@if ! getent group $(GROUP) > /dev/null; then \
 		groupadd $(GROUP); \
 	fi
@@ -82,9 +82,9 @@ install-client:
 		echo "SUDO_USER nicht gesetzt. Bitte 'sudo make install' verwenden."; exit 1; \
 	fi
 	@echo "Installiere Client..."
-	@install -m 755 $(TARGET) $(INSTALL_DIR)/pwmctl-backend
+	@install -Dm755 $(TARGET) /usr/local/share/pwmctl/backend/pwmctl-backend
 	@usermod -aG $(GROUP) $$SUDO_USER
-	@install -m 755 pwmctl.sh $(INSTALL_DIR)/pwmctl
+	@install -m755 pwmctl.sh $(INSTALL_DIR)/pwmctl
 	@echo "Client installiert."
 
 # Frontend installieren
