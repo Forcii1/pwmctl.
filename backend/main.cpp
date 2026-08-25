@@ -236,6 +236,7 @@ int main (){
         auto& curves = j["Curves"];
         std::size_t fanCount = fans.size();
         auto& gpus = j["Gpus"];
+        auto& overclocksettings = j["Overclock"];
 
         gputemp=gpu->tempforpwmctl();
 
@@ -253,6 +254,12 @@ int main (){
 
             //gpu->setpwm(pwm,i);
             gpu->setpwm2(gpus,curves,pwm,std::to_string(i),gputemp,cputemp,i);
+        }
+        //Overclocking
+        if(overclocksettings["enabled"]){
+            gpu->change_wattage(overclocksettings["power_limit_w"]);
+            //gpu->change_core_clock(overclocksettings["core_offset_mhz"]);
+            //gpu->change_mem_clock(overclocksettings["mem_offset_mhz"]);
         }
         
         //safe temp and fan data

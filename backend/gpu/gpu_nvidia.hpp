@@ -31,8 +31,8 @@ class NvidiaGpu : public Gpu {
     
             
         virtual bool change_wattage(int watt) override;
-        virtual bool change_core_clock(int hz) override;
-        virtual bool change_mem_clock(int hz) override;
+        virtual bool change_core_clock(int mhz) override;
+        virtual bool change_mem_clock(int mhz) override;
 
     private:
         nvmlDevice_t device;

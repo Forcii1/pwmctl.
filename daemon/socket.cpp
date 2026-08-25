@@ -378,7 +378,7 @@ bool set_pwm(std::string cmd){
         std::cerr << "Fehler beim Schreiben in " << path << "\n";
         return 1;
     } 
-    
+
     file << value;
     if (!file) {
         std::cerr << "Fehler beim Schreiben in " << path << "\n";
@@ -421,7 +421,6 @@ bool set_amd_pwm(std::string cmd){
         std::cerr << "Pfad verboten: " << path << "\n";
         return 1;
     }
-    std::cout<<"TEST";
 
     std::string length = cmd.substr(p2+1,p3-p2-1);
 

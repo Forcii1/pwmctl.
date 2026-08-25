@@ -242,7 +242,8 @@ std::vector<int> AmdGpu::get_fanslist() {
 }
 
 bool AmdGpu::change_wattage(int watt) {
-    return false;
+    send_command(path.string()+"power1_cap",watt*1000000);
+    return 1;
 }
 
 bool AmdGpu::change_core_clock(int hz) {
