@@ -37,6 +37,39 @@ function searchPath(name1, name2 = "") {
   console.log("[Preload] No matching HWMon path found");
   return "NONE";
 }
+
+function readHWMONFile(hwmonname, file) {
+  const hwmonBase = '/sys/class/hwmon/';
+
+  let foundPath;
+  try {
+    const entries = fs.readdirSync(hwmonBase, { withFileTypes: true });
+
+    for (const entry of entries) {
+        //if (!entry.isDirectory()) continue;
+        const nameFile = path.join(hwmonBase, entry.name, 'name');
+        if (fs.existsSync(nameFile)) {
+            let content = fs.readFileSync(nameFile, 'utf8').trim();
+            if (content.includes(hwmonname)) {
+            foundPath = path.join(hwmonBase, entry.name) + '/';
+            foundPath = path.join(foundPath, file);
+            content = fs.readFileSync(foundPath, 'utf8').trim();
+            return content;
+            }
+        }
+    }
+  } catch (err) {
+    console.error("[Preload] Error in readHWMONFile:", err);
+  }
+
+
+
+
+  console.log("[Preload] No matching HWMon path found");
+  return "NONE";
+}
+
+
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
     app.quit();
@@ -161,4 +194,7 @@ ipcMain.handle('get-paths', () => {
 });
 ipcMain.handle('search-path', (event, name1, name2) => {
   return searchPath(name1, name2);
+});
+ipcMain.handle('read-hwmon', (event, hwmonname, file) => {
+  return readHWMONFile(hwmonname, file);
 });

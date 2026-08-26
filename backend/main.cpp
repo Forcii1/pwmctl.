@@ -256,6 +256,7 @@ int main (){
             gpu->setpwm2(gpus,curves,pwm,std::to_string(i),gputemp,cputemp,i);
         }
         //Overclocking
+        //There should be some kind of reading for min and max limit and offset
         if(overclocksettings["enabled"]){
             gpu->change_wattage(overclocksettings["power_limit_w"]);
             //gpu->change_core_clock(overclocksettings["core_offset_mhz"]);

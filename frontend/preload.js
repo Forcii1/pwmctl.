@@ -7,6 +7,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   searchPath: (name1, name2) => ipcRenderer.invoke('search-path', name1, name2),
+  readhwmon: (hwmonname, file) => ipcRenderer.invoke('read-hwmon', hwmonname, file),
   getFanSpeed: (filePath) => {
     return ipcRenderer.invoke('get-speed', filePath);
   },

@@ -42,10 +42,13 @@ function normalizeCurvePoints(points) {
 }
 
 // ==================== OVERCLOCKING ====================
-const OC_POWER_LIMIT_MIN = 100;
-const OC_POWER_LIMIT_MAX = 450;
+const OC_POWER_DEFAULT = await window.electronAPI.readhwmon("amdgpu","power1_cap_default") / 1000000;
+const OC_POWER_LIMIT_MIN = await window.electronAPI.readhwmon("amdgpu","power1_cap_min") / 1000000;
+const OC_POWER_LIMIT_MAX = await window.electronAPI.readhwmon("amdgpu","power1_cap_max")/ 1000000;
+const OC_CORE_OFFSET_DEFAULT = 0;
 const OC_CORE_OFFSET_MIN = -300;
 const OC_CORE_OFFSET_MAX = 300;
+const OC_MEM_OFFSET_DEFAULT = 0;
 const OC_MEM_OFFSET_MIN = -1000;
 const OC_MEM_OFFSET_MAX = 2000;
 
@@ -156,12 +159,36 @@ async function createOverclockUI(savedData = null) {
     );
 
     container.appendChild(grid);
+    const resetButton = document.createElement('button');
+    resetButton.type = 'button';
+    resetButton.className = 'oc-reset-btn';
+    resetButton.textContent = 'Default';
+
+    resetButton.addEventListener('click', () => {
+        const defaults = [
+            { input: powerInput, value: OC_POWER_DEFAULT, min: OC_POWER_LIMIT_MIN, max: OC_POWER_LIMIT_MAX, unit: 'W' },
+            { input: coreInput, value: OC_CORE_OFFSET_DEFAULT, min: OC_CORE_OFFSET_MIN, max: OC_CORE_OFFSET_MAX, unit: 'MHz' },
+            { input: memInput, value: OC_MEM_OFFSET_DEFAULT, min: OC_MEM_OFFSET_MIN, max: OC_MEM_OFFSET_MAX, unit: 'MHz' }
+        ];
+
+        defaults.forEach(({ input, value, min, max, unit }) => {
+            input.value = String(clampInt(value, min, max, 0));
+            // update the adjacent value label
+            const valueLabel = input.parentElement.querySelector('.oc-value');
+            if (valueLabel) valueLabel.textContent = `${input.value} ${unit}`;
+        });
+    });
+    resetButton.disabled = !enableCheckbox.checked;
+    resetButton.style.opacity = enableCheckbox.checked ? '1' : '0.5';
+    container.appendChild(resetButton);
 
     enableCheckbox.addEventListener('change', () => {
         [powerInput, coreInput, memInput].forEach(input => {
             input.disabled = !enableCheckbox.checked;
             input.style.opacity = enableCheckbox.checked ? '1' : '0.5';
         });
+        resetButton.disabled = !enableCheckbox.checked;
+        resetButton.style.opacity = enableCheckbox.checked ? '1' : '0.5';
     });
 }
 
