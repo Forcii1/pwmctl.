@@ -806,8 +806,8 @@ input[type="range"] {
 
 .oc-reset-btn {
     display: block;
-    margin: 8px 0 0 0;   /* kein auto-Margin mehr -> linksbündig statt zentriert */
-    padding: 4px 10px;   /* kleiner als vorher */
-    font-size: 0.85em;   /* etwas kleinere Schrift */
-    width: 6em;         /* nicht volle Breite */
+    margin: 8px 0 0 0;  
+    padding: 4px 10px; 
+    font-size: 0.85em;   
+    width: 6em;         
 }

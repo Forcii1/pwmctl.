@@ -106,7 +106,7 @@ function connectToBackend() {
   const socket = new WebSocket('ws://localhost:9002');
 
   socket.on('open', () => {
-    console.log('Verbunden mit C++ Backend');
+    console.log('Frontend connected to Backend');
   });
 
     socket.on('message', (data) => {
@@ -116,17 +116,17 @@ function connectToBackend() {
         win.webContents.send('statusUpdate', latestStatus);
         });
     } catch (e) {
-        console.error('Fehler beim Parsen:', e);
+        console.error('Error whilw connecting:', e);
     }
     });
 
   socket.on('close', () => {
-    console.log('Verbindung getrennt, versuche erneut in 2s...');
+    console.log('Pipe broke, retrying in 2s...');
     setTimeout(connectToBackend, 2000);
   });
 
   socket.on('error', (err) => {
-    console.error('WS Fehler:', err);
+    console.error('WS Error:', err);
   });
 }
 
@@ -166,7 +166,6 @@ function createWindow() {
         if (startHidden) {
             win.hide();
         } else {
-            // Hauptbildschirm ermitteln und Fenster dort zentrieren
             const { screen } = require('electron');
             const primaryDisplay = screen.getPrimaryDisplay();
             const { width, height } = primaryDisplay.workAreaSize;
@@ -204,7 +203,7 @@ app.whenReady().then(() => {
     });
 
     backendProcess.on('error', (err) => {
-        console.error('[Main] pwmctl backend konnte nicht gestartet werden:', err);
+        console.error('[Main] pwmctl backend didnt start:', err);
     });
     connectToBackend();
     createWindow();
@@ -236,7 +235,7 @@ ipcMain.handle('get-speed', async (event, filePath) => {
 ipcMain.handle('saveAllData', (event, path,data) => {
     if (!data) return console.error(" saveAllData: no data received!");
     fs.writeFileSync(path, JSON.stringify(data, null, 4), 'utf-8');
-    console.log(" Konfiguration gespeichert:", path);
+    console.log(" Config saved:", path);
 });
 
 ipcMain.handle('loadAllData', (event, filePath) => {

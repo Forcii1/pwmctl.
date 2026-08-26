@@ -92,8 +92,7 @@ T getOr(const json& j, const std::string& key, T def) {
     return def;
 }
 
-// Wendet Overclocking-Einstellungen aus der Config an, aber nur wenn sich
-// etwas geaendert hat (die GPU-APIs sollen nicht jede Sekunde neu getriggert werden).
+
 void applyOverclock(std::unique_ptr<Gpu>& gpu, json& j) {
     static bool oc_was_enabled = false;
     static int last_power_limit = INT32_MIN;
@@ -122,9 +121,6 @@ void applyOverclock(std::unique_ptr<Gpu>& gpu, json& j) {
         }
         oc_was_enabled = true;
     } else if (oc_was_enabled) {
-        // Beim Deaktivieren werden nur die Clock-Offsets zurueckgesetzt (0 = Standard).
-        // Das Power-Limit bleibt bewusst auf dem zuletzt gesetzten Wert, da wir hier
-        // keine Hardware-Grenzwerte mehr abfragen, um sicher auf "Werksdefault" zurueckzusetzen.
         gpu->change_core_clock(0);
         gpu->change_mem_clock(0);
 
@@ -329,6 +325,8 @@ int main (){
         }
         
         //safe temp and fan data
+        //Idea: Everything should work via the socket. The frontend shouldn't access files etc.
+        //Before the while loop send one time static info with fancount, vram, max_wattage etc etc.
         json status;
         status["cpu_temp"] = cputemp;
         status["gpu_core_temp"] = gpu->core_temp();
@@ -350,16 +348,7 @@ int main (){
         
         
         sendStatus(*socket, status);
-        
-        /*std::filesystem::path tmp = STATUSpath;
-        tmp += ".tmp";
 
-        std::ofstream statusFile(tmp);
-        if (statusFile) {
-            statusFile << status.dump();
-            statusFile.close();
-            std::filesystem::rename(tmp, STATUSpath);
-        }*/
 
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
