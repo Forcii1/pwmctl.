@@ -88,6 +88,7 @@ install-client:
 	@echo "Client installiert."
 
 # Frontend installieren
+#Hier noch npm und ws??
 install-frontend:
 	@if [ -z "$$SUDO_USER" ]; then \
 		echo "SUDO_USER nicht gesetzt. Bitte 'sudo make install' verwenden."; exit 1; \
@@ -98,6 +99,8 @@ install-frontend:
 	@install -d /usr/share/icons/hicolor/128x128/apps
 	@install -d /home/$$SUDO_USER/.config/autostart
 	@cp -r $(FRONTEND_DIR)/ /usr/local/share/pwmctl/
+	@echo "NPM Dependencies..."
+	@cd /usr/local/share/pwmctl/$(FRONTEND_DIR) && npm install --production
 	@magick $(FRONTEND_DIR)/assets/icon.png -resize 128x128 /tmp/pwmctl_icon.png
 	@install -Dm644 /tmp/pwmctl_icon.png \
 		/usr/share/icons/hicolor/128x128/apps/pwmctl.png
