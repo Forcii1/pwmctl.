@@ -41,16 +41,42 @@ function normalizeCurvePoints(points) {
     }));
 }
 
+
+
 // ==================== OVERCLOCKING ====================
-const OC_POWER_DEFAULT = await window.electronAPI.readhwmon("amdgpu","power1_cap_default") / 1000000;
-const OC_POWER_LIMIT_MIN = await window.electronAPI.readhwmon("amdgpu","power1_cap_min") / 1000000;
-const OC_POWER_LIMIT_MAX = await window.electronAPI.readhwmon("amdgpu","power1_cap_max")/ 1000000;
+let OC_POWER_DEFAULT, OC_POWER_LIMIT_MIN, OC_POWER_LIMIT_MAX;
 const OC_CORE_OFFSET_DEFAULT = 0;
 const OC_CORE_OFFSET_MIN = -300;
 const OC_CORE_OFFSET_MAX = 300;
 const OC_MEM_OFFSET_DEFAULT = 0;
 const OC_MEM_OFFSET_MIN = -1000;
 const OC_MEM_OFFSET_MAX = 2000;
+
+async function initOverclockConstants(isAmd) {
+    if (!isAmd) {
+        //Fallback for NVIDIA. No idea how to do it here
+        OC_POWER_DEFAULT = 0;
+        OC_POWER_LIMIT_MIN = 0;
+        OC_POWER_LIMIT_MAX = 900;
+        return;
+    }
+
+    try {
+        const [def, min, max] = await Promise.all([
+            window.electronAPI.readhwmon("amdgpu", "power1_cap_default"),
+            window.electronAPI.readhwmon("amdgpu", "power1_cap_min"),
+            window.electronAPI.readhwmon("amdgpu", "power1_cap_max"),
+        ]);
+        OC_POWER_DEFAULT = def / 1000000;
+        OC_POWER_LIMIT_MIN = min / 1000000;
+        OC_POWER_LIMIT_MAX = max / 1000000;
+    } catch (err) {
+        console.error("Could not set power values:", err);
+        OC_POWER_DEFAULT = 0;
+        OC_POWER_LIMIT_MIN = 0;
+        OC_POWER_LIMIT_MAX = 900;
+    }
+}
 
 function clampInt(value, min, max, fallback = 0) {
     const numericValue = Number(value);
@@ -65,6 +91,13 @@ async function createOverclockUI(savedData = null) {
 
     const gpupath = await window.electronAPI.searchPath("amdgpu");
     const isAmd = gpupath !== "NONE";
+
+    await initOverclockConstants(isAmd);
+
+    if (!isAmd) {
+        container.innerHTML = '<p>Overclocking wird auf dieser GPU nicht unterstützt.</p>';
+        return; // keine Slider/Buttons rendern, wenn kein AMD-System
+    }
 
     const cacheData = await loadAllData(cachePath).catch(() => null);
     const ocSaved = savedData?.Overclock || {};
