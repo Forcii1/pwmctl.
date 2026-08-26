@@ -7,6 +7,20 @@ const { loadAllData } = window.electronAPI;
 const FAN_PERCENT_MIN = 0;
 const FAN_PERCENT_MAX = 100;
 
+let cacheddata;
+let resolveFirstStatus;
+const firstStatusPromise = new Promise(resolve => {
+  resolveFirstStatus = resolve;
+});
+
+window.electronAPI.onStatusUpdate((status) => {
+  cacheddata = status;
+  if (resolveFirstStatus) {
+    resolveFirstStatus();
+    resolveFirstStatus = null;
+  }
+});
+
 function clampPercent(value) {
     const numericValue = Number(value);
     if (!Number.isFinite(numericValue)) return FAN_PERCENT_MIN;
@@ -99,7 +113,7 @@ async function createOverclockUI(savedData = null) {
         return; // keine Slider/Buttons rendern, wenn kein AMD-System
     }
 
-    const cacheData = await loadAllData(cachePath).catch(() => null);
+    const cacheData = cacheddata;
     const ocSaved = savedData?.Overclock || {};
 
 
@@ -163,7 +177,7 @@ async function createOverclockUI(savedData = null) {
 
     const powerInput = buildField(
         'ocPowerLimitInput',
-        `Power Limit (${OC_POWER_LIMIT_MIN}–${OC_POWER_LIMIT_MAX} W)`,
+        `Power Limit`,
         OC_POWER_LIMIT_MIN,
         OC_POWER_LIMIT_MAX,
         1,
@@ -245,6 +259,7 @@ function collectOverclockData() {
 // ==================== FAN MANAGEMENT ====================
 async function init() {
     console.log(`Configpath: ${configPath}`);
+    await firstStatusPromise;   // warten, bis die erste Sensordaten da sind
     const savedData = await loadAllData(configPath);
     await loadCurves(savedData);
     await createFanButtons("it87", "it86", "Fans", savedData);
@@ -268,6 +283,14 @@ async function createFanButtons(name1, name2, displayName, savedData = null) {
     const hwmonPath = await window.electronAPI.searchPath(name1, name2);
     if (hwmonPath === "NONE") {
         container.textContent = `Found no HWmon-Driver for ${displayName}!`;
+    }else{
+        const count = await getFanCount();
+        if (hwmonPath !== "NONE") {
+            for (let i = 1; i <= count; i++) {
+                const fanData = savedData?.Fans?.[i] || null;
+                createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, false, fanData, i - 1);
+            }
+        }
     }
 
     let gpuFanFile = null;
@@ -281,16 +304,8 @@ async function createFanButtons(name1, name2, displayName, savedData = null) {
         gpuFanFile = "NVIDIA GPU";
     }
 
-    const count = await getFanCount();
 
-    if (hwmonPath !== "NONE") {
-        for (let i = 1; i <= count; i++) {
-            const fanData = savedData?.Fans?.[i] || null;
-            createFanUI(container, `Fan ${i}`, `${hwmonPath}/fan${i}_input`, false, fanData, i - 1);
-        }
-    }
-
-    const cacheData = await loadAllData(cachePath);
+    const cacheData = cacheddata;
     const gpuFanPercents = cacheData?.gpu_fan_percent;
     const gpuFanCount = Array.isArray(gpuFanPercents) ? gpuFanPercents.length : 1;
 
@@ -991,7 +1006,7 @@ function renderSensorOverview(data) {
 
 async function updateTemps() {
     try {
-        const data = await loadAllData(cachePath);
+        const data = cacheddata;
         renderSensorOverview(data);
 
         tempCPU.textContent = 'CPU ' + formatSensorValue("cpu_temp", data?.cpu_temp);
@@ -1078,13 +1093,11 @@ function markSaveError() {
 //nvidia helper functiom
 async function getGpuFanPercent(){
     try {
-        const data = await loadAllData(cachePath);
-        return data?.gpu_fan_percent;
+        return cacheddata?.gpu_fan_percent;
     } catch {
         return 0;
     }
 }
 async function getFanCount(){
-        const data = await loadAllData(cachePath);
-        return data?.fan_count;
+        return cacheddata?.fan_count;
 }

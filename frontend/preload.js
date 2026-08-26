@@ -14,5 +14,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveAllData: (path,data) => ipcRenderer.invoke('saveAllData',path, data),
   loadAllData: (path) => ipcRenderer.invoke('loadAllData',path),
   getPaths: () => ipcRenderer.invoke('get-paths'),
+  onStatusUpdate: (callback) => {
+    ipcRenderer.on('statusUpdate', (event, data) => callback(data));
+  }
 });
 

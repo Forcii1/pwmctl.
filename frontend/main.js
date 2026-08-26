@@ -1,4 +1,5 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain } = require('electron');
+const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs');
 const { execSync, spawn } = require('child_process');
@@ -69,6 +70,65 @@ function readHWMONFile(hwmonname, file) {
   return "NONE";
 }
 
+function readDRMFile(vendorID, file) {
+  const drmBase = '/sys/class/drm/';
+
+  let foundPath;
+  try {
+    const entries = fs.readdirSync(drmBase, { withFileTypes: true });
+
+    for (const entry of entries) {
+        //if (!entry.isDirectory()) continue;
+        const nameFile = path.join(drmBase, entry.name, '/device/vendor');
+        if (fs.existsSync(nameFile)) {
+            let content = fs.readFileSync(nameFile, 'utf8').trim();
+            if (content.includes(vendorID)) {
+            foundPath = path.join(drmBase, entry.name,'/device') + '/';
+            foundPath = path.join(foundPath, file);
+            content = fs.readFileSync(foundPath, 'utf8').trim();
+            return content;
+            }
+        }
+    }
+  } catch (err) {
+    console.error("[Preload] Error in readDRMFile:", err);
+  }
+
+
+
+
+  console.log("[Preload] No matching HWMon path found");
+  return "NONE";
+}
+
+
+function connectToBackend() {
+  const socket = new WebSocket('ws://localhost:9002');
+
+  socket.on('open', () => {
+    console.log('Verbunden mit C++ Backend');
+  });
+
+    socket.on('message', (data) => {
+    try {
+        latestStatus = JSON.parse(data);
+        BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('statusUpdate', latestStatus);
+        });
+    } catch (e) {
+        console.error('Fehler beim Parsen:', e);
+    }
+    });
+
+  socket.on('close', () => {
+    console.log('Verbindung getrennt, versuche erneut in 2s...');
+    setTimeout(connectToBackend, 2000);
+  });
+
+  socket.on('error', (err) => {
+    console.error('WS Fehler:', err);
+  });
+}
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -146,9 +206,9 @@ app.whenReady().then(() => {
     backendProcess.on('error', (err) => {
         console.error('[Main] pwmctl backend konnte nicht gestartet werden:', err);
     });
-
+    connectToBackend();
     createWindow();
-
+    
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
@@ -174,9 +234,9 @@ ipcMain.handle('get-speed', async (event, filePath) => {
 
 // Speichern
 ipcMain.handle('saveAllData', (event, path,data) => {
-    if (!data) return console.error("❌ saveAllData: no data received!");
+    if (!data) return console.error(" saveAllData: no data received!");
     fs.writeFileSync(path, JSON.stringify(data, null, 4), 'utf-8');
-    console.log("✅ Konfiguration gespeichert:", path);
+    console.log(" Konfiguration gespeichert:", path);
 });
 
 ipcMain.handle('loadAllData', (event, filePath) => {
