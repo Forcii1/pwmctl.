@@ -13,6 +13,10 @@
 
 #include "json.hpp"
 
+#include <boost/beast/core.hpp>
+#include <boost/beast/websocket.hpp>
+#include <boost/asio.hpp>
+
 #include "gpu/gpu.hpp"
 #include "gpu/gpu_amd.hpp"
 
@@ -24,6 +28,10 @@
 #include "utility/hwmon_utils.hpp"
 
 using json = nlohmann::json;
+namespace beast = boost::beast;
+namespace websocket = beast::websocket;
+namespace net = boost::asio;
+using tcp = net::ip::tcp;
 
 std::atomic<bool> running(true);
 
@@ -196,10 +204,63 @@ void signal_handler(int sig) {
     running = false;
 }
 
+struct WsConnection {
+    net::io_context ioc;
+    tcp::acceptor acceptor;
+    std::optional<websocket::stream<beast::tcp_stream>> ws;
+
+    WsConnection()
+        : acceptor(ioc, {tcp::v4(), 9002})
+    {}
+};
+
+std::unique_ptr<WsConnection> initsocket() {
+    auto conn = std::make_unique<WsConnection>();
+
+    std::cout << "WebSocket server listening on port 9002" << std::endl;
+
+    conn->acceptor.async_accept(
+        [conn_ptr = conn.get()](beast::error_code ec, tcp::socket socket) {
+            if (ec) {
+                std::cerr << "Accept error: " << ec.message() << std::endl;
+                return;
+            }
+
+            conn_ptr->ws.emplace(std::move(socket));
+
+            conn_ptr->ws->async_accept(
+                [conn_ptr](beast::error_code ec) {
+                    if (ec) {
+                        std::cerr << "WebSocket error: "
+                                  << ec.message() << std::endl;
+                        conn_ptr->ws.reset();
+                        return;
+                    }
+
+                    std::cout << "Frontend connected!" << std::endl;
+                }
+            );
+        }
+    );
+
+    return conn;
+}
+
+void sendStatus(WsConnection& conn, const json& status) {
+    if (!conn.ws || !conn.ws->is_open())
+        return;
+
+    std::string payload = status.dump();
+
+    conn.ws->text(true);
+    conn.ws->write(boost::asio::buffer(payload));
+}
+
 int main (){
     //signal handler
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
+    
     //vars
 
     auto gpu = create_gpu();
@@ -224,6 +285,10 @@ int main (){
     json j=loadconf(CONFIGpath);
     auto& fans = j["Fans"];
 
+    auto socket = initsocket();
+    std::thread([&socket]() {
+        socket->ioc.run();
+    }).detach();
     int fanCount = fans.size();
 
     int gputemp;
@@ -284,8 +349,9 @@ int main (){
         status["fan_count"] = fanCount;
         
         
-
-        std::filesystem::path tmp = STATUSpath;
+        sendStatus(*socket, status);
+        
+        /*std::filesystem::path tmp = STATUSpath;
         tmp += ".tmp";
 
         std::ofstream statusFile(tmp);
@@ -293,7 +359,7 @@ int main (){
             statusFile << status.dump();
             statusFile.close();
             std::filesystem::rename(tmp, STATUSpath);
-        }
+        }*/
 
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
